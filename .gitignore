@@ -1,0 +1,11 @@
+node_modules/
+build/
+.env.local
+.DS_Store
+*.log
+.env
+.env.*
+*.key
+*.pem
+credentials.*
+secrets.*

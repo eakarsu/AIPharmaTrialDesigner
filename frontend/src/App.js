@@ -1,0 +1,157 @@
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import './App.css';
+
+import Sidebar from './components/Sidebar';
+import Dashboard from './components/Dashboard';
+
+import LoginPage from './pages/LoginPage';
+
+// Original 8 CRUD
+import TrialsPage from './pages/TrialsPage';
+import SitesPage from './pages/SitesPage';
+import ProtocolsPage from './pages/ProtocolsPage';
+import InvestigatorsPage from './pages/InvestigatorsPage';
+import PatientsPage from './pages/PatientsPage';
+import CompoundsPage from './pages/CompoundsPage';
+import EndpointsPage from './pages/EndpointsPage';
+import AdverseEventsPage from './pages/AdverseEventsPage';
+
+// New 10 CRUD
+import AmendmentsPage from './pages/AmendmentsPage';
+import DeviationsPage from './pages/DeviationsPage';
+import MonitoringVisitsPage from './pages/MonitoringVisitsPage';
+import QueriesPage from './pages/QueriesPage';
+import DataLocksPage from './pages/DataLocksPage';
+import MilestonesPage from './pages/MilestonesPage';
+import BudgetsPage from './pages/BudgetsPage';
+import VendorsCroPage from './pages/VendorsCroPage';
+import RegulatorySubmissionsPage from './pages/RegulatorySubmissionsPage';
+import SupplyShipmentsPage from './pages/SupplyShipmentsPage';
+
+// Original 6 AI
+import AIDraftProtocolPage from './pages/AIDraftProtocolPage';
+import AIRecommendEndpointsPage from './pages/AIRecommendEndpointsPage';
+import AISizeCohortPage from './pages/AISizeCohortPage';
+import AISelectSitesPage from './pages/AISelectSitesPage';
+import AIModelRiskPage from './pages/AIModelRiskPage';
+import AIGenerateBriefPage from './pages/AIGenerateBriefPage';
+
+// New 10 AI
+import AIDeviationClassifierPage from './pages/AIDeviationClassifierPage';
+import AIDsmbAlertPage from './pages/AIDsmbAlertPage';
+import AIEdcAnomalyPage from './pages/AIEdcAnomalyPage';
+import AIStatisticalImbalancePage from './pages/AIStatisticalImbalancePage';
+import AIExpectedVsActualPage from './pages/AIExpectedVsActualPage';
+import AIIrbPkgDrafterPage from './pages/AIIrbPkgDrafterPage';
+import AIQueryResolverPage from './pages/AIQueryResolverPage';
+import AIMilestoneForecasterPage from './pages/AIMilestoneForecasterPage';
+import AIBudgetBurnPage from './pages/AIBudgetBurnPage';
+import AIRegulatoryImpactPage from './pages/AIRegulatoryImpactPage';
+
+// System
+import WebhooksPage from './pages/WebhooksPage';
+import BulkImportPage from './pages/BulkImportPage';
+
+// Custom Views (Trial Design Views)
+import CustomViewsPage from './pages/CustomViewsPage';
+
+function AppShell({ user, onLogout }) {
+  return (
+    <div className="app">
+      <Sidebar user={user} onLogout={onLogout} />
+      <main className="main">
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+
+          <Route path="/trials" element={<TrialsPage />} />
+          <Route path="/sites" element={<SitesPage />} />
+          <Route path="/protocols" element={<ProtocolsPage />} />
+          <Route path="/investigators" element={<InvestigatorsPage />} />
+          <Route path="/patients" element={<PatientsPage />} />
+          <Route path="/compounds" element={<CompoundsPage />} />
+          <Route path="/endpoints" element={<EndpointsPage />} />
+          <Route path="/adverse-events" element={<AdverseEventsPage />} />
+
+          <Route path="/amendments"             element={<AmendmentsPage />} />
+          <Route path="/deviations"             element={<DeviationsPage />} />
+          <Route path="/monitoring-visits"      element={<MonitoringVisitsPage />} />
+          <Route path="/queries"                element={<QueriesPage />} />
+          <Route path="/data-locks"             element={<DataLocksPage />} />
+          <Route path="/milestones"             element={<MilestonesPage />} />
+          <Route path="/budgets"                element={<BudgetsPage />} />
+          <Route path="/vendors-cro"            element={<VendorsCroPage />} />
+          <Route path="/regulatory-submissions" element={<RegulatorySubmissionsPage />} />
+          <Route path="/supply-shipments"       element={<SupplyShipmentsPage />} />
+
+          <Route path="/ai/draft-protocol"        element={<AIDraftProtocolPage />} />
+          <Route path="/ai/recommend-endpoints"   element={<AIRecommendEndpointsPage />} />
+          <Route path="/ai/size-cohort"           element={<AISizeCohortPage />} />
+          <Route path="/ai/select-sites"          element={<AISelectSitesPage />} />
+          <Route path="/ai/model-risk"            element={<AIModelRiskPage />} />
+          <Route path="/ai/generate-brief"        element={<AIGenerateBriefPage />} />
+
+          <Route path="/ai/deviation-classifier"  element={<AIDeviationClassifierPage />} />
+          <Route path="/ai/dsmb-alert"            element={<AIDsmbAlertPage />} />
+          <Route path="/ai/edc-anomaly"           element={<AIEdcAnomalyPage />} />
+          <Route path="/ai/statistical-imbalance" element={<AIStatisticalImbalancePage />} />
+          <Route path="/ai/expected-vs-actual"    element={<AIExpectedVsActualPage />} />
+          <Route path="/ai/irb-pkg-drafter"       element={<AIIrbPkgDrafterPage />} />
+          <Route path="/ai/query-resolver"        element={<AIQueryResolverPage />} />
+          <Route path="/ai/milestone-forecaster"  element={<AIMilestoneForecasterPage />} />
+          <Route path="/ai/budget-burn"           element={<AIBudgetBurnPage />} />
+          <Route path="/ai/regulatory-impact"     element={<AIRegulatoryImpactPage />} />
+
+          <Route path="/webhooks"    element={<WebhooksPage />} />
+          <Route path="/bulk-import" element={<BulkImportPage />} />
+
+          <Route path="/custom-views" element={<CustomViewsPage />} />
+
+          <Route path="/login" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </main>
+    </div>
+  );
+}
+
+function App() {
+  const [token, setToken] = useState(() => localStorage.getItem('token'));
+  const [user, setUser] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('user') || 'null'); }
+    catch (_) { return null; }
+  });
+
+  useEffect(() => {
+    const sync = () => {
+      setToken(localStorage.getItem('token'));
+      try { setUser(JSON.parse(localStorage.getItem('user') || 'null')); }
+      catch (_) { setUser(null); }
+    };
+    window.addEventListener('storage', sync);
+    return () => window.removeEventListener('storage', sync);
+  }, []);
+
+  const handleLogin = (u, t) => { setUser(u); setToken(t); };
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null);
+    setToken(null);
+  };
+
+  return (
+    <Router>
+      {(!token || !user) ? (
+        <Routes>
+          <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      ) : (
+        <AppShell user={user} onLogout={handleLogout} />
+      )}
+    </Router>
+  );
+}
+
+export default App;
