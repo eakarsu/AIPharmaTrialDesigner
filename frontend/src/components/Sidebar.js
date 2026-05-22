@@ -17,6 +17,7 @@ const OPS_LINKS = [
   { path: '/amendments',            label: 'Amendments' },
   { path: '/deviations',            label: 'Deviations' },
   { path: '/monitoring-visits',     label: 'Monitoring Visits' },
+  { path: '/site-activation-risk',  label: 'Site Activation Risk' },
   { path: '/queries',               label: 'Queries' },
   { path: '/data-locks',            label: 'Data Locks' },
   { path: '/milestones',            label: 'Milestones' },
@@ -48,6 +49,21 @@ const AI_LINKS = [
 const SYS_LINKS = [
   { path: '/webhooks',    label: 'Webhooks' },
   { path: '/bulk-import', label: 'Bulk Import' },
+];
+
+// Pass 7 — full backlog. MECHANICAL deterministic tools + ADVISORY ONLY (TOO-RISKY) helpers.
+const PASS7_LINKS = [
+  { path: '/ai/power-calc-explain',  label: 'Power-Calc Explainer' },
+  { path: '/ai/patient-burden',      label: 'Patient Burden' },
+  { path: '/comparable-trials',      label: 'Comparable Trials' },
+  { path: '/protocol-version-graph', label: 'Protocol Version-Graph' },
+  { path: '/irb-workflows',          label: 'IRB Workflows' },
+  { path: '/ai/ie-optimizer',        label: 'I/E Optimizer (advisory)' },
+  { path: '/ai/ind-nda-section',     label: 'IND/NDA Section (advisory)' },
+  { path: '/ai/dropout-predictor',   label: 'Dropout Predictor (advisory)' },
+  { path: '/ai/adaptive-sim',        label: 'Adaptive-Design Sim (advisory)' },
+  { path: '/ai/rwe-match',           label: 'RWE Matcher (advisory)' },
+  { path: '/integrations',           label: 'Integrations (needs creds)' },
 ];
 
 function Sidebar({ user, onLogout }) {
@@ -90,6 +106,11 @@ function Sidebar({ user, onLogout }) {
 
           <div className="sidebar-section">System</div>
           {SYS_LINKS.map(l => (
+            <Link key={l.path} to={l.path} className={`nav-link ${isActive(l.path) ? 'active' : ''}`} onClick={close}>{l.label}</Link>
+          ))}
+
+          <div className="sidebar-section">Backlog (Pass 7)</div>
+          {PASS7_LINKS.map(l => (
             <Link key={l.path} to={l.path} className={`nav-link ${isActive(l.path) ? 'active' : ''}`} onClick={close}>{l.label}</Link>
           ))}
 

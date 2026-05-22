@@ -59,6 +59,17 @@ app.use('/api/supply-shipments',   writeGate, require('./routes/supplyShipments'
 
 // AI route (any authenticated user)
 app.use('/api/ai', require('./routes/ai'));
+app.use('/api/site-activation-risk', require('./routes/siteActivationRisk'));
+
+// Pass 7 (full backlog) — extra AI endpoints, comparable-trial finder,
+// protocol version-graph, IRB state-machine, and NEEDS-CREDS 503 stubs.
+// All mounted BEFORE any 404 / catch-all handler.
+const pass7 = require('./routes/pass7');
+app.use('/api/ai',                pass7.aiRouter);             // adds power-calc-explain, patient-burden, ie-optimizer, ind-nda-section, dropout-predictor, adaptive-sim, rwe-match
+app.use('/api/comparable-trials', pass7.comparableRouter);     // MECHANICAL DB-side finder
+app.use('/api/protocols-graph',   pass7.protocolGraphRouter);  // protocol version-graph + diff (read-only)
+app.use('/api/irb-workflows',     pass7.irbRouter);            // IRB state-machine
+app.use('/api/integrations',      pass7.integrationsRouter);   // NEEDS-CREDS 503 stubs
 
 // Cross-cutting
 app.use('/api/notifications', require('./routes/notifications'));

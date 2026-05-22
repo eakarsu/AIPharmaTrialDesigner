@@ -55,6 +55,25 @@ import BulkImportPage from './pages/BulkImportPage';
 
 // Custom Views (Trial Design Views)
 import CustomViewsPage from './pages/CustomViewsPage';
+import SiteActivationRiskPage from './pages/SiteActivationRiskPage';
+
+import CodexCustomVizFeature from './pages/CodexCustomVizFeature';
+import CodexOperationsFeature from './pages/CodexOperationsFeature';
+
+import TimelineView from './pages/TimelineView';
+
+// Pass 7 (full backlog) — MECHANICAL + ADVISORY ONLY + IRB state-machine
+import AIPowerCalcExplainPage from './pages/AIPowerCalcExplainPage';
+import AIPatientBurdenPage from './pages/AIPatientBurdenPage';
+import AIIeOptimizerPage from './pages/AIIeOptimizerPage';
+import AIIndNdaSectionPage from './pages/AIIndNdaSectionPage';
+import AIDropoutPredictorPage from './pages/AIDropoutPredictorPage';
+import AIAdaptiveSimPage from './pages/AIAdaptiveSimPage';
+import AIRweMatchPage from './pages/AIRweMatchPage';
+import ComparableTrialsPage from './pages/ComparableTrialsPage';
+import ProtocolVersionGraphPage from './pages/ProtocolVersionGraphPage';
+import IrbWorkflowsPage from './pages/IrbWorkflowsPage';
+import IntegrationsStatusPage from './pages/IntegrationsStatusPage';
 
 function AppShell({ user, onLogout }) {
   return (
@@ -62,6 +81,10 @@ function AppShell({ user, onLogout }) {
       <Sidebar user={user} onLogout={onLogout} />
       <main className="main">
         <Routes>
+        <Route path="/insights/timeline" element={<TimelineView />} />
+        <Route path="/codex/custom-viz" element={<CodexCustomVizFeature />} />
+        <Route path="/codex/operations" element={<CodexOperationsFeature />} />
+
           <Route path="/" element={<Dashboard />} />
 
           <Route path="/trials" element={<TrialsPage />} />
@@ -76,6 +99,7 @@ function AppShell({ user, onLogout }) {
           <Route path="/amendments"             element={<AmendmentsPage />} />
           <Route path="/deviations"             element={<DeviationsPage />} />
           <Route path="/monitoring-visits"      element={<MonitoringVisitsPage />} />
+          <Route path="/site-activation-risk"   element={<SiteActivationRiskPage />} />
           <Route path="/queries"                element={<QueriesPage />} />
           <Route path="/data-locks"             element={<DataLocksPage />} />
           <Route path="/milestones"             element={<MilestonesPage />} />
@@ -106,6 +130,19 @@ function AppShell({ user, onLogout }) {
           <Route path="/bulk-import" element={<BulkImportPage />} />
 
           <Route path="/custom-views" element={<CustomViewsPage />} />
+
+          {/* Pass 7 — full backlog */}
+          <Route path="/ai/power-calc-explain"  element={<AIPowerCalcExplainPage />} />
+          <Route path="/ai/patient-burden"      element={<AIPatientBurdenPage />} />
+          <Route path="/ai/ie-optimizer"        element={<AIIeOptimizerPage />} />
+          <Route path="/ai/ind-nda-section"     element={<AIIndNdaSectionPage />} />
+          <Route path="/ai/dropout-predictor"   element={<AIDropoutPredictorPage />} />
+          <Route path="/ai/adaptive-sim"        element={<AIAdaptiveSimPage />} />
+          <Route path="/ai/rwe-match"           element={<AIRweMatchPage />} />
+          <Route path="/comparable-trials"      element={<ComparableTrialsPage />} />
+          <Route path="/protocol-version-graph" element={<ProtocolVersionGraphPage />} />
+          <Route path="/irb-workflows"          element={<IrbWorkflowsPage />} />
+          <Route path="/integrations"           element={<IntegrationsStatusPage />} />
 
           <Route path="/login" element={<Navigate to="/" replace />} />
           <Route path="*" element={<Navigate to="/" />} />

@@ -173,6 +173,34 @@ export const fireWebhookTest = (event, payload) =>
 export const bulkImport = (entity, csv) =>
   request(`/bulk-import/${entity}`, { method: 'POST', body: JSON.stringify({ csv }) });
 
+// ---------- Pass 7 (full backlog) ----------
+// MECHANICAL + ADVISORY-ONLY AI endpoints
+export const aiPowerCalcExplain  = (body) => request('/ai/power-calc-explain',  { method: 'POST', body: JSON.stringify(body) });
+export const aiPatientBurden     = (body) => request('/ai/patient-burden',     { method: 'POST', body: JSON.stringify(body) });
+export const aiIeOptimizer       = (body) => request('/ai/ie-optimizer',       { method: 'POST', body: JSON.stringify(body) });
+export const aiIndNdaSection     = (body) => request('/ai/ind-nda-section',    { method: 'POST', body: JSON.stringify(body) });
+export const aiDropoutPredictor  = (body) => request('/ai/dropout-predictor',  { method: 'POST', body: JSON.stringify(body) });
+export const aiAdaptiveSim       = (body) => request('/ai/adaptive-sim',       { method: 'POST', body: JSON.stringify(body) });
+export const aiRweMatch          = (body) => request('/ai/rwe-match',          { method: 'POST', body: JSON.stringify(body) });
+
+// Comparable-trial finder
+export const findComparableTrials = (body) => request('/comparable-trials/find', { method: 'POST', body: JSON.stringify(body) });
+
+// Protocol version-graph
+export const getProtocolGraphByTrial = (trialId) => request(`/protocols-graph/by-trial/${encodeURIComponent(trialId)}`);
+export const getProtocolDiff = (fromId, toId) =>
+  request(`/protocols-graph/diff?from=${encodeURIComponent(fromId)}&to=${encodeURIComponent(toId)}`);
+
+// IRB workflow state-machine
+export const listIrbWorkflows   = () => request('/irb-workflows');
+export const getIrbWorkflow     = (id) => request(`/irb-workflows/${id}`);
+export const createIrbWorkflow  = (data) => request('/irb-workflows', { method: 'POST', body: JSON.stringify(data) });
+export const transitionIrbWorkflow = (id, data) =>
+  request(`/irb-workflows/${id}/transition`, { method: 'POST', body: JSON.stringify(data) });
+
+// NEEDS-CREDS integrations (return 503 with required_credentials)
+export const integrationProbe = (path) => request(`/integrations/${path}`);
+
 // ---------- Custom Views (4 derived views) ----------
 export const customViewsTrialTimeline    = () => request('/custom-views/trial-timeline');
 export const customViewsEndpointCoverage = () => request('/custom-views/endpoint-coverage');
