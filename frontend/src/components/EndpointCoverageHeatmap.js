@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import DetailModal from './DetailModal';
 import { customViewsEndpointCoverage } from '../services/api';
 
 /**
@@ -7,6 +8,7 @@ import { customViewsEndpointCoverage } from '../services/api';
  */
 function EndpointCoverageHeatmap() {
   const [data, setData] = useState(null);
+  const [detail, setDetail] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -49,7 +51,11 @@ function EndpointCoverageHeatmap() {
           </thead>
           <tbody>
             {data.trials.map(tr => (
-              <tr key={tr.trial_id}>
+              <tr
+                key={tr.trial_id}
+                style={{ cursor: 'pointer' }}
+                onClick={() => setDetail({ title: `Endpoint coverage — ${tr.trial_id}`, data: tr })}
+              >
                 <td style={{
                   padding: '4px 8px', fontFamily: 'monospace', color: '#111827',
                   whiteSpace: 'nowrap',
@@ -60,6 +66,13 @@ function EndpointCoverageHeatmap() {
                     <td
                       key={type}
                       title={`${tr.trial_id} / ${type}: ${cell.count}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDetail({
+                          title: `${tr.trial_id} / ${type}`,
+                          data: { trial: tr.trial_id, type, count: cell.count, max_count: max },
+                        });
+                      }}
                       style={{
                         background: shade(cell.count),
                         color: cell.count > max * 0.5 ? '#fff' : '#111827',
@@ -68,6 +81,7 @@ function EndpointCoverageHeatmap() {
                         minWidth: 50,
                         borderRadius: 3,
                         fontWeight: 600,
+                        cursor: 'pointer',
                       }}
                     >
                       {cell.count}
@@ -79,6 +93,7 @@ function EndpointCoverageHeatmap() {
           </tbody>
         </table>
       </div>
+      {detail && <DetailModal title={detail.title} data={detail.data} onClose={() => setDetail(null)} />}
     </div>
   );
 }

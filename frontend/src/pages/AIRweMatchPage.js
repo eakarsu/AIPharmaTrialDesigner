@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import AIResult from '../components/AIResult';
 import AIHistory from '../components/AIHistory';
+import SampleButtons from '../components/SampleButtons';
 import { aiRweMatch } from '../services/api';
 
 const FEATURE = 'rwe-match';
@@ -37,6 +38,7 @@ function AIRweMatchPage() {
       </div>
       <div className="card" style={{ borderLeft: '4px solid #f59e0b' }}>
         <p style={{ color: '#92400e', fontSize: 13 }}>ADVISORY ONLY — requires expert review — not for regulatory submission.</p>
+        <SampleButtons feature={FEATURE} onPick={(values) => setForm(prev => ({ ...prev, ...values }))} />
         <div className="form-grid">
           <div className="form-group"><label>Indication</label><input name="indication" value={form.indication} onChange={onChange} /></div>
           <div className="form-group"><label>Target Outcome</label><input name="target_outcome" value={form.target_outcome} onChange={onChange} /></div>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import AIResult from '../components/AIResult';
 import AIHistory from '../components/AIHistory';
+import SampleButtons from '../components/SampleButtons';
 import { aiIndNdaSection } from '../services/api';
 
 const FEATURE = 'ind-nda-section';
@@ -46,6 +47,7 @@ function AIIndNdaSectionPage() {
       </div>
       <div className="card" style={{ borderLeft: '4px solid #f59e0b' }}>
         <p style={{ color: '#92400e', fontSize: 13 }}>ADVISORY ONLY — requires expert review — not for regulatory submission.</p>
+        <SampleButtons feature={FEATURE} onPick={(values) => setForm(prev => ({ ...prev, ...values }))} />
         <div className="form-grid">
           <div className="form-group full"><label>Section</label>
             <select name="section" value={form.section} onChange={onChange}>

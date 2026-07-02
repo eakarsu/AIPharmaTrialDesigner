@@ -46,6 +46,16 @@ async function seed() {
     const schema = fs.readFileSync(path.join(__dirname, '../migrations/001_schema.sql'), 'utf-8');
     await client.query(schema);
 
+    // Apply all later migrations too (seed drops everything, so 001 alone loses pass-7 tables)
+    const migrationsDir = path.join(__dirname, '../migrations');
+    const later = fs.readdirSync(migrationsDir)
+      .filter(f => f.endsWith('.sql') && f !== '001_schema.sql')
+      .sort();
+    for (const f of later) {
+      await client.query(fs.readFileSync(path.join(migrationsDir, f), 'utf-8'));
+      console.log(`Applied migration ${f}`);
+    }
+
     // ---------- TRIALS (15) ----------
     const trials = [
       ['ONCO-LUNG-301', 'A Phase III Study of MK-3475 in Combination with Pemetrexed for First-Line Treatment of Metastatic NSCLC', 'Non-Small Cell Lung Cancer', 'III', 'recruiting', 'Merck Sharp & Dohme', '2024-09-01'],
@@ -460,6 +470,9 @@ async function seed() {
        ('demo-amendment', 'http://localhost:3041/api/webhooks/test-receiver', 'amendment.approved','whsec_demo_2026', true)`
     );
     console.log('Seeded 3 demo webhooks');
+
+    // ---------- Pass 8/9 trial-conduct tables (>=15 rows each) ----------
+    await require('./seedConduct')(client);
 
     console.log('\nSeed complete.');
   } catch (err) {

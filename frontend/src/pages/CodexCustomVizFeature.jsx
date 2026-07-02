@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import DetailModal from '../components/DetailModal';
 
 const signals = [
   { label: 'Demand', value: 72, delta: '+12%' },
@@ -10,6 +11,11 @@ const signals = [
 
 const trend = [18, 32, 28, 46, 41, 57, 69, 64, 78, 72, 88, 83];
 const maxTrend = Math.max(...trend);
+const trendPoints = trend.map((value, index) => {
+  const x = 28 + index * 42;
+  const y = 172 - (value / maxTrend) * 128;
+  return { index: index + 1, value, x, y };
+});
 const points = trend.map((value, index) => {
   const x = 28 + index * 42;
   const y = 172 - (value / maxTrend) * 128;
@@ -17,6 +23,8 @@ const points = trend.map((value, index) => {
 }).join(' ');
 
 function TimelineView() {
+  const [detail, setDetail] = useState(null);
+
   return (
     <section style={{ padding: 24, color: '#172033' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'flex-end', flexWrap: 'wrap' }}>
@@ -35,10 +43,20 @@ function TimelineView() {
               <line key={y} x1="28" x2="492" y1={y} y2={y} stroke="#e2e8f0" strokeWidth="1" />
             ))}
             <polyline points={points} fill="none" stroke="#0f766e" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-            {trend.map((value, index) => {
-              const x = 28 + index * 42;
-              const y = 172 - (value / maxTrend) * 128;
-              return <circle key={index} cx={x} cy={y} r="5" fill="#14b8a6" stroke="#ffffff" strokeWidth="2" />;
+            {trendPoints.map((point) => {
+              return (
+                <circle
+                  key={point.index}
+                  cx={point.x}
+                  cy={point.y}
+                  r="5"
+                  fill="#14b8a6"
+                  stroke="#ffffff"
+                  strokeWidth="2"
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => setDetail({ title: `Trend point — period ${point.index}`, data: point })}
+                />
+              );
             })}
             <text x="28" y="204" fill="#64748b" fontSize="12">Start</text>
             <text x="448" y="204" fill="#64748b" fontSize="12">Current</text>
@@ -47,7 +65,11 @@ function TimelineView() {
 
         <div style={{ display: 'grid', gap: 12 }}>
           {signals.map((signal) => (
-            <div key={signal.label} style={{ border: '1px solid #d7dde8', borderRadius: 8, padding: 14, background: '#ffffff' }}>
+            <div
+              key={signal.label}
+              style={{ border: '1px solid #d7dde8', borderRadius: 8, padding: 14, background: '#ffffff', cursor: 'pointer' }}
+              onClick={() => setDetail({ title: `Insight signal — ${signal.label}`, data: signal })}
+            >
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                 <strong>{signal.label}</strong>
                 <span style={{ color: signal.delta.startsWith('+') ? '#047857' : '#b45309' }}>{signal.delta}</span>
@@ -59,6 +81,7 @@ function TimelineView() {
           ))}
         </div>
       </div>
+      {detail && <DetailModal title={detail.title} data={detail.data} onClose={() => setDetail(null)} />}
     </section>
   );
 }

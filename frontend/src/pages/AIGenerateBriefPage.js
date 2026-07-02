@@ -39,7 +39,13 @@ function AIGenerateBriefPage() {
         <button className="btn btn-secondary" onClick={() => setHistoryOpen(true)}>History</button>
       </div>
       <div className="card">
-        <SampleButtons feature={FEATURE} onPick={(values) => { if (values.audience) setAudience(values.audience); }} />
+        <SampleButtons feature={FEATURE} onPick={(values) => {
+          if (values.trial_id) {
+            const match = trials.find(t => t.trial_id === values.trial_id);
+            if (match) setSelectedId(String(match.id));
+          }
+          if (values.audience) setAudience(values.audience);
+        }} />
         <div className="form-grid">
           <div className="form-group full"><label>Trial</label>
             <select value={selectedId} onChange={e => setSelectedId(e.target.value)}>

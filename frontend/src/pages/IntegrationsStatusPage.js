@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { integrationProbe } from '../services/api';
+import DetailModal from '../components/DetailModal';
+import AIResult from '../components/AIResult';
+import { featureAiAnalyze } from '../services/api';
 
 const PROBES = [
   { label: 'ClinicalTrials.gov — search',     path: 'ctgov/search' },
@@ -16,7 +18,10 @@ const PROBES = [
 
 function IntegrationsStatusPage() {
   const [results, setResults] = useState({});
+  const [aiResult, setAiResult] = useState(null);
+  const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
 
   const probeAll = async () => {
     setLoading(true);
@@ -39,6 +44,22 @@ function IntegrationsStatusPage() {
     setLoading(false);
   };
 
+  const runAiReview = async () => {
+    setAiLoading(true); setAiResult(null);
+    try {
+      setAiResult(await featureAiAnalyze({
+        feature: 'integrations-status',
+        intent: 'Review integration readiness, missing credentials, product decisions, and sequencing risks.',
+        input: { probes: PROBES },
+        mechanical_result: { results },
+      }));
+    } catch (e) {
+      setAiResult({ error: e.message });
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   return (
     <div>
       <div className="page-header">
@@ -46,7 +67,10 @@ function IntegrationsStatusPage() {
           <h2>Integrations Status</h2>
           <p>NEEDS-CREDS endpoints. Each returns 503 with a machine-readable list of credentials required before it can be wired up.</p>
         </div>
-        <button className="btn btn-ai" onClick={probeAll} disabled={loading}>Probe All</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-primary" onClick={probeAll} disabled={loading}>Probe All</button>
+          <button className="btn btn-ai" onClick={runAiReview} disabled={aiLoading}>{aiLoading ? 'Running AI...' : 'OpenRouter AI'}</button>
+        </div>
       </div>
       <div className="card">
         <table style={{ width: '100%' }}>
@@ -60,7 +84,14 @@ function IntegrationsStatusPage() {
             {PROBES.map(p => {
               const r = results[p.path];
               return (
-                <tr key={p.path}>
+                <tr
+                  key={p.path}
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => setDetail({
+                    title: `Integration — ${p.label}`,
+                    data: { ...p, ...(r || { status: 'not_probed', body: null }) },
+                  })}
+                >
                   <td>{p.label}</td>
                   <td><code>/api/integrations/{p.path}</code></td>
                   <td>{r ? r.status : '—'}</td>
@@ -75,6 +106,8 @@ function IntegrationsStatusPage() {
           </tbody>
         </table>
       </div>
+      <AIResult result={aiResult} loading={aiLoading} error={null} />
+      {detail && <DetailModal title={detail.title} data={detail.data} onClose={() => setDetail(null)} />}
     </div>
   );
 }

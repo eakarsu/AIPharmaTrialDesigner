@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import DetailModal from '../components/DetailModal';
 
 const stages = [
   { label: 'Intake', value: 28 },
@@ -9,6 +10,7 @@ const stages = [
 ];
 
 function TimelineView() {
+  const [detail, setDetail] = useState(null);
   const width = 620;
   const height = 260;
   const max = Math.max(...stages.map((stage) => stage.value));
@@ -27,7 +29,11 @@ function TimelineView() {
           {[60, 100, 140, 180, 220].map((y) => <line key={y} x1="42" x2="580" y1={y} y2={y} stroke="#e2e8f0" />)}
           <polyline points={points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke="#2563eb" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
           {points.map((point) => (
-            <g key={point.label}>
+            <g
+              key={point.label}
+              style={{ cursor: 'pointer' }}
+              onClick={() => setDetail({ title: `Timeline stage — ${point.label}`, data: point })}
+            >
               <circle cx={point.x} cy={point.y} r="8" fill="#2563eb" stroke="#ffffff" strokeWidth="3" />
               <text x={point.x} y="238" textAnchor="middle" fill="#475569" fontSize="13">{point.label}</text>
               <text x={point.x} y={point.y - 16} textAnchor="middle" fill="#172033" fontSize="13" fontWeight="700">{point.value}</text>
@@ -36,7 +42,11 @@ function TimelineView() {
         </svg>
         <div style={{ display: 'grid', gap: 10 }}>
           {stages.map((stage) => (
-            <div key={stage.label} style={{ border: '1px solid #d7dde8', borderRadius: 8, padding: 12, background: '#ffffff' }}>
+            <div
+              key={stage.label}
+              style={{ border: '1px solid #d7dde8', borderRadius: 8, padding: 12, background: '#ffffff', cursor: 'pointer' }}
+              onClick={() => setDetail({ title: `Timeline stage — ${stage.label}`, data: stage })}
+            >
               <strong>{stage.label}</strong>
               <div style={{ height: 8, background: '#e2e8f0', borderRadius: 999, overflow: 'hidden', marginTop: 8 }}>
                 <div style={{ width: `${stage.value}%`, height: '100%', background: '#2563eb' }} />
@@ -45,6 +55,7 @@ function TimelineView() {
           ))}
         </div>
       </section>
+      {detail && <DetailModal title={detail.title} data={detail.data} onClose={() => setDetail(null)} />}
     </main>
   );
 }

@@ -32,6 +32,12 @@ app.post('/api/webhooks/test-receiver', express.json(), (req, res) => {
 // Gate everything else under /api/* behind JWT
 app.use('/api', authenticateToken);
 
+// Pass 9: Part 11-STYLE tamper-evident audit chain — records every
+// authenticated write across the whole /api surface (fire-and-forget,
+// never blocks the response). Mounted right after auth so req.user exists.
+const pass9 = require('./routes/pass9');
+app.use('/api', pass9.auditMiddleware);
+
 // Read-open CRUD routes (RBAC: any authenticated user can read; only sponsor+pi can write)
 const writeGate = requireWrite();
 
@@ -59,6 +65,7 @@ app.use('/api/supply-shipments',   writeGate, require('./routes/supplyShipments'
 
 // AI route (any authenticated user)
 app.use('/api/ai', require('./routes/ai'));
+app.use('/api/feature-ai', require('./routes/featureAi'));
 app.use('/api/site-activation-risk', require('./routes/siteActivationRisk'));
 
 // Pass 7 (full backlog) — extra AI endpoints, comparable-trial finder,
@@ -70,6 +77,33 @@ app.use('/api/comparable-trials', pass7.comparableRouter);     // MECHANICAL DB-
 app.use('/api/protocols-graph',   pass7.protocolGraphRouter);  // protocol version-graph + diff (read-only)
 app.use('/api/irb-workflows',     pass7.irbRouter);            // IRB state-machine
 app.use('/api/integrations',      pass7.integrationsRouter);   // NEEDS-CREDS 503 stubs
+
+// Pass 8 (trial conduct) — randomization/IWRS, SDTM export, DSMB packet,
+// enrollment forecast, MedDRA coding + safety narrative (advisory),
+// Form 1572 drafts, delegation log, and training records.
+const pass8 = require('./routes/pass8');
+app.use('/api/ai',                  pass8.aiRouter);           // adds meddra-code, safety-narrative
+app.use('/api/randomization',       pass8.randomizationRouter);
+app.use('/api/sdtm',                pass8.sdtmRouter);
+app.use('/api/dsmb',                pass8.dsmbRouter);
+app.use('/api/enrollment-forecast', pass8.forecastRouter);
+app.use('/api/form-1572',           pass8.form1572Router);
+app.use('/api/delegation-log',      writeGate, pass8.delegationRouter);
+app.use('/api/training-records',    writeGate, pass8.trainingRouter);
+
+// Pass 9 (integrations + real stats + compliance mechanics)
+app.use('/api/ctgov',       pass9.ctgovRouter);      // LIVE CT.gov v2 public read API
+app.use('/api/design-sim',  pass9.designRouter);     // exact power calc + Monte Carlo GSD simulator
+app.use('/api/audit-trail', pass9.auditRouter);      // hash-chain view + verify
+app.use('/api/econsent',    pass9.econsentRouter);   // consent forms + e-signed records
+// AI-vs-deterministic comparison endpoints (extend the pass-7 base paths)
+app.use('/api/comparable-trials', pass9.compareAiRouter);  // adds POST /find-ai
+app.use('/api/protocols-graph',   pass9.compareAiRouter);  // adds POST /graph-ai
+
+// Pass 10 — production-readiness gap closures: advanced IRT lifecycle,
+// emergency unblinding, SDTM validation checks, permissions matrix,
+// validation evidence, and compliance export.
+app.use('/api/production-readiness', require('./routes/pass10'));
 
 // Cross-cutting
 app.use('/api/notifications', require('./routes/notifications'));

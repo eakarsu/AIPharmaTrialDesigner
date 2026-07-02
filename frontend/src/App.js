@@ -75,6 +75,24 @@ import ProtocolVersionGraphPage from './pages/ProtocolVersionGraphPage';
 import IrbWorkflowsPage from './pages/IrbWorkflowsPage';
 import IntegrationsStatusPage from './pages/IntegrationsStatusPage';
 
+// Pass 8 (trial conduct) — randomization, SDTM, DSMB, forecast, 1572, logs
+import RandomizationPage from './pages/RandomizationPage';
+import SdtmExportPage from './pages/SdtmExportPage';
+import DsmbPacketPage from './pages/DsmbPacketPage';
+import EnrollmentForecastPage from './pages/EnrollmentForecastPage';
+import AIMeddraCodePage from './pages/AIMeddraCodePage';
+import AISafetyNarrativePage from './pages/AISafetyNarrativePage';
+import Form1572Page from './pages/Form1572Page';
+import DelegationLogPage from './pages/DelegationLogPage';
+import TrainingRecordsPage from './pages/TrainingRecordsPage';
+
+// Pass 9 — live CT.gov, design statistics, audit chain, eConsent
+import CtgovSearchPage from './pages/CtgovSearchPage';
+import DesignSimulatorPage from './pages/DesignSimulatorPage';
+import AuditTrailPage from './pages/AuditTrailPage';
+import EConsentPage from './pages/EConsentPage';
+import ProductionReadinessPage from './pages/ProductionReadinessPage';
+
 function AppShell({ user, onLogout }) {
   return (
     <div className="app">
@@ -143,6 +161,26 @@ function AppShell({ user, onLogout }) {
           <Route path="/protocol-version-graph" element={<ProtocolVersionGraphPage />} />
           <Route path="/irb-workflows"          element={<IrbWorkflowsPage />} />
           <Route path="/integrations"           element={<IntegrationsStatusPage />} />
+
+          {/* Pass 8 — trial conduct */}
+          <Route path="/randomization"        element={<RandomizationPage />} />
+          <Route path="/sdtm-export"          element={<SdtmExportPage />} />
+          <Route path="/dsmb-packet"          element={<DsmbPacketPage />} />
+          <Route path="/enrollment-forecast"  element={<EnrollmentForecastPage />} />
+          <Route path="/ai/meddra-code"       element={<AIMeddraCodePage />} />
+          <Route path="/ai/safety-narrative"  element={<AISafetyNarrativePage />} />
+          <Route path="/form-1572"            element={<Form1572Page />} />
+          <Route path="/delegation-log"       element={<DelegationLogPage />} />
+          <Route path="/training-records"     element={<TrainingRecordsPage />} />
+
+          {/* Pass 9 — live CT.gov, design statistics, audit chain, eConsent */}
+          <Route path="/ctgov-search"     element={<CtgovSearchPage />} />
+          <Route path="/design-sim"       element={<DesignSimulatorPage />} />
+          <Route path="/audit-trail"      element={<AuditTrailPage />} />
+          <Route path="/econsent"         element={<EConsentPage />} />
+
+          {/* Pass 10 — production-readiness gap closures */}
+          <Route path="/production-readiness" element={<ProductionReadinessPage />} />
 
           <Route path="/login" element={<Navigate to="/" replace />} />
           <Route path="*" element={<Navigate to="/" />} />

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import AIResult from './AIResult';
 import AIHistory from './AIHistory';
-import { aiSamples } from '../services/api';
+import { aiSamples, featureAiAnalyze } from '../services/api';
 
 /**
  * Reusable AI page scaffold.
@@ -16,7 +16,9 @@ import { aiSamples } from '../services/api';
 export default function AIPage({ title, subtitle, feature, defaults, fields, call, submitLabel = 'Run' }) {
   const [form, setForm] = useState(defaults || {});
   const [result, setResult] = useState(null);
+  const [aiReview, setAiReview] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
   const [error, setError] = useState(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [samples, setSamples] = useState([]);
@@ -50,19 +52,38 @@ export default function AIPage({ title, subtitle, feature, defaults, fields, cal
     setError(null);
   };
 
-  const onSubmit = async () => {
-    setLoading(true); setError(null); setResult(null);
-    try {
-      // Parse JSON fields back into objects before sending
-      const payload = { ...form };
-      for (const f of fields) {
-        if (f.type === 'json' && typeof payload[f.key] === 'string') {
-          try { payload[f.key] = JSON.parse(payload[f.key]); } catch (_) { /* keep as string */ }
-        }
+  const buildPayload = () => {
+    const payload = { ...form };
+    for (const f of fields) {
+      if (f.type === 'json' && typeof payload[f.key] === 'string') {
+        try { payload[f.key] = JSON.parse(payload[f.key]); } catch (_) { /* keep as string */ }
       }
-      setResult(await call(payload));
+    }
+    return payload;
+  };
+
+  const onSubmit = async () => {
+    setLoading(true); setError(null); setResult(null); setAiReview(null);
+    try {
+      setResult(await call(buildPayload()));
     } catch (e) { setError(e.message); }
     finally { setLoading(false); }
+  };
+
+  const onAiReview = async () => {
+    setAiLoading(true); setError(null); setAiReview(null);
+    try {
+      const payload = buildPayload();
+      const baseResult = result || await call(payload);
+      if (!result) setResult(baseResult);
+      setAiReview(await featureAiAnalyze({
+        feature,
+        intent: `Review the ${title} feature output and compare it with the deterministic/memory-backed result.`,
+        input: payload,
+        mechanical_result: baseResult,
+      }));
+    } catch (e) { setError(e.message); }
+    finally { setAiLoading(false); }
   };
 
   const renderField = (f) => {
@@ -109,11 +130,15 @@ export default function AIPage({ title, subtitle, feature, defaults, fields, cal
             </div>
           ))}
         </div>
-        <div style={{ marginTop: 16, display:'flex', justifyContent:'flex-end' }}>
+        <div style={{ marginTop: 16, display:'flex', justifyContent:'flex-end', gap: 8 }}>
           <button className="btn btn-ai" onClick={onSubmit} disabled={loading}>{submitLabel}</button>
+          <button className="btn btn-secondary" onClick={onAiReview} disabled={aiLoading}>
+            {aiLoading ? 'Running AI...' : 'OpenRouter AI'}
+          </button>
         </div>
       </div>
       <AIResult result={result} loading={loading} error={error} />
+      <AIResult result={aiReview} loading={aiLoading} error={null} />
       <AIHistory feature={feature} open={historyOpen} onClose={() => setHistoryOpen(false)} />
     </div>
   );

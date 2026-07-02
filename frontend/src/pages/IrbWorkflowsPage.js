@@ -1,15 +1,21 @@
 import React, { useEffect, useState } from 'react';
+import DetailModal from '../components/DetailModal';
+import AIResult from '../components/AIResult';
 import {
   listIrbWorkflows,
   getIrbWorkflow,
   createIrbWorkflow,
   transitionIrbWorkflow,
+  featureAiAnalyze,
 } from '../services/api';
 
 function IrbWorkflowsPage() {
   const [rows, setRows] = useState([]);
   const [selected, setSelected] = useState(null);
+  const [detail, setDetail] = useState(null);
+  const [aiResult, setAiResult] = useState(null);
   const [error, setError] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newForm, setNewForm] = useState({
     workflow_id: 'IRB-WF-' + Date.now(),
@@ -52,6 +58,19 @@ function IrbWorkflowsPage() {
     } catch (e) { setError(e.message); }
   };
 
+  const runAiReview = async () => {
+    setAiLoading(true); setError(null); setAiResult(null);
+    try {
+      setAiResult(await featureAiAnalyze({
+        feature: 'irb-workflows',
+        intent: 'Review IRB workflow state coverage, transition history, continuing-review risks, and missing approval evidence.',
+        input: { selected_workflow: selected?.workflow?.workflow_id || null },
+        mechanical_result: { workflows: rows, selected },
+      }));
+    } catch (e) { setError(e.message); }
+    finally { setAiLoading(false); }
+  };
+
   return (
     <div>
       <div className="page-header">
@@ -59,7 +78,10 @@ function IrbWorkflowsPage() {
           <h2>IRB Workflows</h2>
           <p>State-machine: draft → submitted → response_pending → approved | rejected → continuing_review. Every transition is logged for audit.</p>
         </div>
-        <button className="btn btn-ai" onClick={() => setCreating(true)}>+ New Workflow</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-ai" onClick={runAiReview} disabled={aiLoading}>{aiLoading ? 'Running AI...' : 'OpenRouter AI'}</button>
+          <button className="btn btn-primary" onClick={() => setCreating(true)}>+ New Workflow</button>
+        </div>
       </div>
       {error && <div className="card" style={{ color: '#b91c1c' }}>Error: {error}</div>}
       {creating && (
@@ -92,14 +114,14 @@ function IrbWorkflowsPage() {
           </tr></thead>
           <tbody>
             {rows.map(r => (
-              <tr key={r.id}>
+              <tr key={r.id} style={{ cursor: 'pointer' }} onClick={() => setDetail({ title: `IRB workflow — ${r.workflow_id}`, data: r })}>
                 <td>{r.id}</td>
                 <td>{r.workflow_id}</td>
                 <td>{r.trial}</td>
                 <td>{r.irb_name}</td>
                 <td><span style={{ padding: '2px 8px', borderRadius: 4, background: '#e2e8f0' }}>{r.state}</span></td>
                 <td>{r.last_review_at ? new Date(r.last_review_at).toLocaleDateString() : '—'}</td>
-                <td><button className="btn btn-secondary" onClick={() => onSelect(r.id)}>Open</button></td>
+                <td><button className="btn btn-secondary" onClick={(e) => { e.stopPropagation(); onSelect(r.id); }}>Open</button></td>
               </tr>
             ))}
             {rows.length === 0 && <tr><td colSpan={7} style={{ textAlign: 'center', color: '#64748b' }}>No workflows yet.</td></tr>}
@@ -132,7 +154,11 @@ function IrbWorkflowsPage() {
             <thead><tr><th align="left">When</th><th align="left">From</th><th align="left">To</th><th align="left">Actor</th><th align="left">Reason</th></tr></thead>
             <tbody>
               {selected.transitions.map(t => (
-                <tr key={t.id}>
+                <tr
+                  key={t.id}
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => setDetail({ title: `IRB transition — ${t.to_state}`, data: t })}
+                >
                   <td>{new Date(t.created_at).toLocaleString()}</td>
                   <td>{t.from_state || '—'}</td>
                   <td>{t.to_state}</td>
@@ -144,6 +170,8 @@ function IrbWorkflowsPage() {
           </table>
         </div>
       )}
+      <AIResult result={aiResult} loading={aiLoading} error={null} />
+      {detail && <DetailModal title={detail.title} data={detail.data} onClose={() => setDetail(null)} />}
     </div>
   );
 }

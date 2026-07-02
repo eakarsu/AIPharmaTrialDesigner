@@ -66,6 +66,34 @@ const PASS7_LINKS = [
   { path: '/integrations',           label: 'Integrations (needs creds)' },
 ];
 
+// Pass 8 — trial conduct. Randomization/IWRS, SDTM export, DSMB packet,
+// enrollment forecast, MedDRA coding + safety narrative (advisory),
+// Form 1572 drafts, delegation log, training records.
+const PASS8_LINKS = [
+  { path: '/randomization',       label: 'Randomization / IWRS / IRT' },
+  { path: '/sdtm-export',         label: 'SDTM Export' },
+  { path: '/dsmb-packet',         label: 'DSMB Packet' },
+  { path: '/enrollment-forecast', label: 'Enrollment Forecast' },
+  { path: '/ai/meddra-code',      label: 'MedDRA Coding (advisory)' },
+  { path: '/ai/safety-narrative', label: 'Safety Narrative (advisory)' },
+  { path: '/form-1572',           label: 'Form 1572 (draft)' },
+  { path: '/delegation-log',      label: 'Delegation Log' },
+  { path: '/training-records',    label: 'Training Records' },
+];
+
+// Pass 9 — live CT.gov search, real design statistics, Part 11-style
+// audit chain, eConsent with two-component e-signatures.
+const PASS9_LINKS = [
+  { path: '/ctgov-search', label: 'CT.gov Search (live)' },
+  { path: '/design-sim',   label: 'Design Statistics' },
+  { path: '/audit-trail',  label: 'Audit Trail (Part 11-style)' },
+  { path: '/econsent',     label: 'eConsent' },
+];
+
+const PASS10_LINKS = [
+  { path: '/production-readiness', label: 'Production Readiness' },
+];
+
 function Sidebar({ user, onLogout }) {
   const location = useLocation();
   const isActive = (path) => location.pathname === path;
@@ -111,6 +139,21 @@ function Sidebar({ user, onLogout }) {
 
           <div className="sidebar-section">Backlog (Pass 7)</div>
           {PASS7_LINKS.map(l => (
+            <Link key={l.path} to={l.path} className={`nav-link ${isActive(l.path) ? 'active' : ''}`} onClick={close}>{l.label}</Link>
+          ))}
+
+          <div className="sidebar-section">Trial Conduct (Pass 8)</div>
+          {PASS8_LINKS.map(l => (
+            <Link key={l.path} to={l.path} className={`nav-link ${isActive(l.path) ? 'active' : ''}`} onClick={close}>{l.label}</Link>
+          ))}
+
+          <div className="sidebar-section">Compliance &amp; Design (Pass 9)</div>
+          {PASS9_LINKS.map(l => (
+            <Link key={l.path} to={l.path} className={`nav-link ${isActive(l.path) ? 'active' : ''}`} onClick={close}>{l.label}</Link>
+          ))}
+
+          <div className="sidebar-section">Gap Closure (Pass 10)</div>
+          {PASS10_LINKS.map(l => (
             <Link key={l.path} to={l.path} className={`nav-link ${isActive(l.path) ? 'active' : ''}`} onClick={close}>{l.label}</Link>
           ))}
 

@@ -141,3 +141,204 @@ Pass 7 routers mounted in `server.js` immediately after `/api/ai`, BEFORE the cr
 
 ### Status
 pass-7-applied — full backlog implemented (MECHANICAL + IRB state-machine + ADVISORY-ONLY TOO-RISKY + NEEDS-CREDS 503 stubs).
+
+## Apply pass 8 (trial conduct)
+
+Pass 8 implements the remaining pure-code backlog items identified after pass 7. All new backend code lives in `backend/routes/pass8.js` + `backend/migrations/003_pass8.sql`; frontend adds 9 pages, api.js functions, App.js routes, and a "Trial Conduct (Pass 8)" sidebar section. Zero new dependencies.
+
+### MECHANICAL (deterministic)
+- **Randomization / IWRS** (`/api/randomization`) — permuted-block, optionally stratified. Arm derived deterministically from (scheme seed, stratum, block_no) via seeded mulberry32 shuffle, so the full schedule is reproducible/auditable without stored lists. Tables: `randomization_schemes`, `randomization_assignments` (unique per scheme+subject). Validates block_size vs allocation-ratio sum, stratum membership, duplicate subjects; assignment runs in a transaction with `FOR UPDATE` on the scheme row.
+- **SDTM export** (`/api/sdtm/:domain`) — SDTM-SHAPED (not CDISC-validated) DM/AE/DV domains from live patients/adverse_events/deviations, JSON or CSV, optional trial filter.
+- **Enrollment forecast** (`/api/enrollment-forecast/run`) — monthly accrual from `patients.enrolled_at`, rate = mean of last 3 accrual months, linear projection to target + AI narrative (advisory).
+- **Form FDA 1572 draft** (`/api/form-1572/generate`) — deterministic 8-section assembly from investigators + sites + trials + active delegation-log rows. Explicitly labeled DRAFT.
+- **Delegation log** (`/api/delegation-log`) and **Training records** (`/api/training-records`) — standard CRUD (writeGate), tables seeded with 5 demo rows each.
+
+### TOO-RISKY (ADVISORY ONLY — withAdvisory wrapper as in pass 7)
+- `POST /api/ai/meddra-code` — proposes SOC/PT-style coding; response carries `not_licensed_meddra: true` (no licensed MedDRA dictionary shipped; certified coder must verify).
+- `POST /api/ai/safety-narrative` — CIOMS-style narrative from an adverse_events row or ad-hoc fields.
+- `POST /api/dsmb/packet` — cross-table enrollment/safety/conduct/milestone aggregation + AI executive summary.
+
+### Persistence
+All AI POSTs persist to `ai_results(feature, input, output, model)`: `meddra-code`, `safety-narrative`, `dsmb-packet`, `enrollment-forecast`.
+
+### Seed
+`seed/seed.js` now applies ALL `migrations/*.sql` after the reset (fixes pass-7 tables being wiped); `003_pass8.sql` uses IF NOT EXISTS + ON CONFLICT DO NOTHING so it is re-runnable.
+
+### Verified
+- Stratified assignment: 6 subjects → alternating arms in permuted blocks; duplicate + invalid-stratum rejected.
+- SDTM DM/AE/DV JSON + CSV; unknown domain 404s.
+- 1572 draft resolves investigator, facility, protocol, and active sub-investigator delegations.
+- DSMB packet + forecast + both advisory verbs return advisory-wrapped output and persist to ai_results.
+- `CI=true react-scripts build` passes.
+
+### Status
+pass-8-applied.
+
+## Apply pass 9 (integrations + real statistics + compliance mechanics)
+
+Pass 9 upgrades the three "not-code-fillable" categories as far as code alone can go. Backend: `backend/routes/pass9.js` + `backend/migrations/004_pass9.sql`. Frontend: 4 pages + "Compliance & Design (Pass 9)" sidebar section. One existing dependency reused (`bcryptjs`); zero new dependencies.
+
+### NEEDS-CREDS → partially LIVE
+- `GET /api/ctgov/search`, `GET /api/ctgov/study/:nctId` — LIVE ClinicalTrials.gov v2 integration. The v2 READ API is public (no credentials); search by condition/term/status with phase filter. Upstream failures surface as 502. Registry PUSH / PRS validation still requires a sponsor account and remains a 503 stub in pass 7.
+
+### TOO-RISKY → mathematically real, still ADVISORY
+- `POST /api/design-sim/power` — exact power/sample size via Acklam inverse-normal CDF (continuous + binary endpoints, dropout inflation). Verified against textbook value (delta=5, sd=10, 90% power → n=85/arm).
+- `POST /api/design-sim/simulate` — Monte Carlo group-sequential simulator: patient-level simulation, O'Brien-Fleming-shaped boundaries z_k = z(1-a/2)*sqrt(K/k), seeded PRNG (reproducible), up to 20k sims. Verified: empirical type I 0.0535 at nominal 0.05 under the null; empirical power 0.9045 vs analytic 0.9031 under delta=0.5, n=85, K=3; reports E[N] and per-look stop probabilities.
+
+### NEEDS-PRODUCT-DECISION → Part 11-STYLE mechanics (explicitly not certified)
+- **Audit chain**: `auditMiddleware` (mounted app-wide right after auth) appends one sha256 hash-chained row per authenticated write to `audit_events` (append-only; chain serialised with row lock; fire-and-forget so it never blocks responses). `GET /api/audit-trail`, `GET /api/audit-trail/verify` recomputes the chain and reports the first broken row. Verified: tampering with a row flips verify to `valid:false` with `first_broken_id`.
+- **eConsent**: `consent_forms` (versioned, same form_id auto-increments version) + `consent_records` with two-component e-signature — the signed-in user's password is re-verified via bcrypt at signing; `signature_hash` binds signer|subject|form|version|meaning|timestamp; duplicate (form, version, subject) rejected 409. Verified: wrong password → 403; correct → 201; duplicate → 409; all writes appear in the audit chain.
+
+### Status
+pass-9-applied. Remaining truly-external items: CT.gov PRS push, EudraCT/CTIS/FDA ESG, Medidata/Veeva/EHR connectors (all need sponsor credentials), and formal validation/certification of statistics + Part 11 (needs qualified experts, not code).
+
+## Apply pass 8/9 polish (samples + seeds)
+
+- **Sample buttons**: `backend/routes/samplesExtra.js` registers 2-3 fill-all-fields scenarios per feature (including optional fields) for all pass 8/9 features AND the pass-7 AIPage features that previously had none (power-calc-explain, ie-optimizer, ind-nda-section, dropout-predictor, adaptive-sim, rwe-match). `routes/ai.js` samples handler merges the extra registry (2-line additive change). AIPage-based pages get the buttons automatically; the 6 custom pages (Randomization, SDTM Export, Form 1572, Design Statistics, CT.gov Search, eConsent) now embed the shared `SampleButtons` component.
+- **Seeds (>=15 rows per new table)**: `backend/seed/seedConduct.js`, called from seed.js — randomization_schemes 15, randomization_assignments 30 (derived with the REAL permuted-block algorithm exported from routes/pass8), delegation_log_entries 15, training_records 15, consent_forms 15 (5 families x 3 versions), consent_records 15 (API-identical signature hashes), audit_events 15 (correctly sha256 hash-chained — verify stays green), irb_workflows 15 + transitions (pass-7 table that previously seeded empty).
+- Verified: all counts >=15; `/api/audit-trail/verify` valid:true over seeded chain; samples endpoint returns scenarios for 14 features; production build passes.
+
+## Apply pass 8/9 polish 2 (row-click detail popups)
+
+New `frontend/src/components/DetailModal.js` — centered popup reusing the app's existing modal/detail CSS (`modal-overlay`/`modal-content`/`detail-grid`), pretty-prints keys, JSON-renders object values. Wired row/card click handlers matching the CrudTable behavior:
+- RandomizationPage — scheme rows + assignment rows (Open button stops propagation)
+- SdtmExportPage — SDTM record rows show all domain variables
+- AuditTrailPage — event rows show full payload incl. prev_hash/hash
+- EConsentPage — form-version rows (full consent text) + consent-record rows (full signature hash)
+- CtgovSearchPage — study rows show all fields + link to full CT.gov record (external link stops propagation)
+- Form1572Page — sub-investigator entries open delegation detail
+- IrbWorkflowsPage (pass 7) — whole row now clickable, not just the Open button
+DelegationLog/TrainingRecords already had this via CrudTable. Production build passes.
+
+## Apply pass 8/9 polish 3 (modal delete action + remaining popup coverage)
+
+- `DetailModal` now always renders a footer Delete button plus Close. Delete is enabled only when the caller passes a real `onDelete`; otherwise it is disabled with a read-only tooltip, avoiding fake destructive actions for registry/statistical/audit/graph details.
+- Enabled real deletes for mutable popup-backed data:
+  - `DesignRulesEditor` rows delete through the existing `customViewsDeleteRule` API.
+  - `CodexOperationsFeature` rows delete from the local workflow list.
+- Added centered detail popups to remaining new-feature rows/cards/charts:
+  - Comparable-trial finder rows
+  - Protocol version-graph nodes and edges
+  - Integrations status rows
+  - Site activation risk summary cards, risk rows, readiness signal rows
+  - Trial timeline phase bars and per-trial bars
+  - Endpoint coverage heatmap trial rows and cells
+  - Timeline view chart points and stage cards
+  - Insight-map trend points and signal cards
+  - IRB workflow rows and transition-history rows
+- Verified `CI=true react-scripts build` passes.
+
+## Apply pass 8/9 polish 4 (complete AI sample-fill buttons)
+
+- Root cause: the shared `AIPage`/`SampleButtons` infrastructure existed, but several custom AI pages did not render `SampleButtons`, and some pass-7 sample payloads used stale field names that did not match the real forms.
+- Added sample-fill button rows to all custom pass-7 AI pages:
+  - `power-calc-explain`
+  - `patient-burden`
+  - `ie-optimizer`
+  - `ind-nda-section`
+  - `dropout-predictor`
+  - `adaptive-sim`
+  - `rwe-match`
+- Corrected pass-7 sample payload keys so every button fills all visible form fields, including booleans, numeric fields, and optional/structured fields.
+- Added `patient-burden` sample scenarios with complete `visits` arrays, including procedure names/minutes and travel minutes.
+- Updated legacy trial-select AI pages so samples can fill the dropdown-backed trial field as well:
+  - `model-risk` samples now include `trial_id`.
+  - `generate-brief` samples now include `trial_id` plus `audience`.
+- Tightened pass-9 samples:
+  - `design-power` scenarios now fill continuous and binary fields (`delta`, `sd`, `p1`, `p2`) regardless of selected endpoint type.
+  - `econsent-sign` scenarios fill the demo password field (`trial2026`) in addition to form, subject, and meaning.
+- Verified:
+  - `CI=true react-scripts build` passes.
+  - Live `/api/ai/samples` checks return 3-5 scenarios for affected features with all expected keys.
+
+## Apply pass 8/9 polish 5 (OpenRouter compare buttons + IRT)
+
+- Added generic authenticated OpenRouter review endpoint:
+  - `POST /api/feature-ai/analyze`
+  - Accepts `{ feature, intent, input, mechanical_result }`
+  - Persists to `ai_results` under `${feature}-openrouter-review`
+  - Returns advisory JSON for comparing the deterministic/memory-backed output with OpenRouter analysis.
+- Added second `OpenRouter AI` buttons to new feature surfaces that previously only showed deterministic/memory-backed behavior:
+  - Randomization / IWRS / IRT
+  - SDTM Export
+  - Form 1572
+  - Comparable Trials
+  - Protocol Version Graph
+  - Delegation Log
+  - Training Records
+  - Design Simulator
+  - CT.gov Search
+  - Audit Trail
+  - eConsent
+  - Integrations Status
+  - IRB Workflows
+  - All `AIPage`-based pages via the shared scaffold, including DSMB packet and enrollment forecast.
+- Added missing IRT mechanics to Randomization/IWRS:
+  - Tables: `irt_kits`, `irt_dispenses`
+  - Endpoints: `GET /api/randomization/irt/kits`, `GET /api/randomization/irt/dispenses`, `POST /api/randomization/irt/dispense`
+  - UI: IRT kit inventory table, IRT dispense history table, and `Dispense IRT Kit` action on randomized subjects.
+  - Seed: 45 IRT kits and 15 IRT dispenses.
+- Verified:
+  - `node --check backend/routes/featureAi.js backend/routes/pass8.js backend/server.js backend/seed/seedConduct.js`
+  - `CI=true react-scripts build`
+  - Seed applies all migrations and creates IRT data.
+  - Authenticated smoke test returns 45 IRT kits and 15 IRT dispenses.
+
+## Apply pass 8/9 polish 6 (Randomization category schema generation)
+
+- Added `category_schema` to `randomization_schemes`:
+  - JSONB column with default `[]`
+  - Seeded category schemas for all seeded randomization schemes
+  - `POST /api/randomization/schemes` persists the category schema
+- Updated Randomization / IWRS / IRT new-scheme form:
+  - Added editable `Category Schema` JSON textarea
+  - Sample buttons now fill `category_schema`
+  - `Create Scheme` validates and persists it
+  - Adjacent `OpenRouter AI` button now generates/reviews a top-level `category_schema` and fills the textarea when the model returns one
+- Updated `/api/feature-ai/analyze` with a category-schema-specific OpenRouter prompt for `randomization-irt-category-schema`.
+- Verified:
+  - Backend syntax checks pass
+  - Frontend production build passes
+  - Seed applies cleanly
+  - Authenticated `/api/randomization/schemes` returns category schemas (`category_schema` array present).
+
+## Apply pass 10 (production-readiness gap closures)
+
+- Added a consolidated Production Readiness feature for remaining app-completeness gaps:
+  - Advanced IRT kit lifecycle controls: quarantine, release, return, destroy
+  - IRT lifecycle event log
+  - IRT resupply forecast by trial/site/arm
+  - Emergency unblinding workflow with revealed arm and audit-style event capture
+  - SDTM-shaped validation checks for DM, AE, and DV
+  - Compliance evidence package summary with SHA-256 package hash
+  - Validation evidence tracker seeded with IRT, SDTM, audit, eConsent, and RBAC evidence records
+  - Sponsor/PI/monitor permissions matrix
+- Added backend migration and routes:
+  - `005_pass10.sql`
+  - `GET /api/production-readiness/permissions-matrix`
+  - `GET /api/production-readiness/validation-evidence`
+  - `GET /api/production-readiness/irt/events`
+  - `GET /api/production-readiness/irt/resupply-forecast`
+  - `POST /api/production-readiness/irt/kit/:kitId/lifecycle`
+  - `POST /api/production-readiness/irt/emergency-unblind`
+  - `GET /api/production-readiness/sdtm-validate/:domain`
+  - `GET /api/production-readiness/compliance-export`
+- Added frontend page and navigation:
+  - `/production-readiness`
+  - Sidebar section: `Gap Closure (Pass 10)`
+  - OpenRouter AI review button for the complete production-readiness package
+  - Centered detail modal on resupply forecast rows, validation evidence rows, lifecycle results, and unblind results
+- Verified:
+  - `node --check backend/routes/pass10.js`
+  - `node --check backend/server.js`
+  - `node seed/seed.js` applies `005_pass10.sql`
+  - `CI=true npm run build`
+  - Authenticated smoke test returns:
+    - 45 IRT kits
+    - 9 permissions rows
+    - 5 validation evidence rows
+    - 45 forecast rows
+    - DM SDTM validation status `pass`
+    - Compliance package hash
+    - Successful IRT quarantine lifecycle event
+    - Successful emergency unblind response

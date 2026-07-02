@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import AIResult from '../components/AIResult';
 import AIHistory from '../components/AIHistory';
+import SampleButtons from '../components/SampleButtons';
 import { aiPowerCalcExplain } from '../services/api';
 
 const FEATURE = 'power-calc-explain';
@@ -41,6 +42,7 @@ function AIPowerCalcExplainPage() {
         <button className="btn btn-secondary" onClick={() => setHistoryOpen(true)}>History</button>
       </div>
       <div className="card">
+        <SampleButtons feature={FEATURE} onPick={(values) => setForm(prev => ({ ...prev, ...values }))} />
         <div className="form-grid">
           <div className="form-group"><label>Alpha (two-sided)</label><input type="number" step="0.005" name="alpha" value={form.alpha} onChange={onChange} /></div>
           <div className="form-group"><label>Power (1 - beta)</label><input type="number" step="0.05" name="power" value={form.power} onChange={onChange} /></div>

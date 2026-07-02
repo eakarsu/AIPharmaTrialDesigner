@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import AIResult from '../components/AIResult';
 import AIHistory from '../components/AIHistory';
+import SampleButtons from '../components/SampleButtons';
 import { aiPatientBurden } from '../services/api';
 
 const FEATURE = 'patient-burden';
@@ -67,6 +68,9 @@ function AIPatientBurdenPage() {
         <button className="btn btn-secondary" onClick={() => setHistoryOpen(true)}>History</button>
       </div>
       <div className="card">
+        <SampleButtons feature={FEATURE} onPick={(values) => {
+          if (Array.isArray(values.visits)) setVisits(values.visits);
+        }} />
         {visits.map((v, vIdx) => (
           <div key={vIdx} style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: 12, marginBottom: 12 }}>
             <div className="form-grid">

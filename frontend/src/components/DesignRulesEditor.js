@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import DetailModal from './DetailModal';
 import {
   customViewsListRules,
   customViewsCreateRule,
@@ -16,6 +17,7 @@ function DesignRulesEditor() {
   const [trials, setTrials] = useState([]);
   const [form, setForm] = useState({ trial: '', kind: 'inclusion', text: '' });
   const [editingId, setEditingId] = useState(null);
+  const [detail, setDetail] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -143,7 +145,11 @@ function DesignRulesEditor() {
           </thead>
           <tbody>
             {rules.map(r => (
-              <tr key={r.id} style={{ borderTop: '1px solid #e5e7eb' }}>
+              <tr
+                key={r.id}
+                style={{ borderTop: '1px solid #e5e7eb', cursor: 'pointer' }}
+                onClick={() => setDetail({ title: `Design rule — ${r.trial}`, data: r })}
+              >
                 <td style={{ padding: '6px 8px', fontFamily: 'monospace' }}>{r.id}</td>
                 <td style={{ padding: '6px 8px', fontFamily: 'monospace' }}>{r.trial}</td>
                 <td style={{ padding: '6px 8px' }}>
@@ -155,8 +161,8 @@ function DesignRulesEditor() {
                 </td>
                 <td style={{ padding: '6px 8px' }}>{r.text}</td>
                 <td style={{ padding: '6px 8px', whiteSpace: 'nowrap' }}>
-                  <button className="btn btn-secondary" style={{ marginRight: 4, padding: '2px 8px', fontSize: 11 }} onClick={() => startEdit(r)}>Edit</button>
-                  <button className="btn btn-danger" style={{ padding: '2px 8px', fontSize: 11 }} onClick={() => remove(r.id)}>Del</button>
+                  <button className="btn btn-secondary" style={{ marginRight: 4, padding: '2px 8px', fontSize: 11 }} onClick={(e) => { e.stopPropagation(); startEdit(r); }}>Edit</button>
+                  <button className="btn btn-danger" style={{ padding: '2px 8px', fontSize: 11 }} onClick={(e) => { e.stopPropagation(); remove(r.id); }}>Del</button>
                 </td>
               </tr>
             ))}
@@ -168,6 +174,17 @@ function DesignRulesEditor() {
           </tbody>
         </table>
       </div>
+      {detail && (
+        <DetailModal
+          title={detail.title}
+          data={detail.data}
+          onClose={() => setDetail(null)}
+          onDelete={async (row) => {
+            await remove(row.id);
+            setDetail(null);
+          }}
+        />
+      )}
     </div>
   );
 }

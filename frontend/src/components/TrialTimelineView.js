@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import DetailModal from './DetailModal';
 import { customViewsTrialTimeline } from '../services/api';
 
 /**
@@ -7,6 +8,7 @@ import { customViewsTrialTimeline } from '../services/api';
  */
 function TrialTimelineView() {
   const [data, setData] = useState(null);
+  const [detail, setDetail] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -33,7 +35,11 @@ function TrialTimelineView() {
           Average duration by phase
         </div>
         {data.by_phase.map(p => (
-          <div key={p.phase} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+          <div
+            key={p.phase}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, cursor: 'pointer' }}
+            onClick={() => setDetail({ title: `Phase ${p.phase} average duration`, data: p })}
+          >
             <div style={{ width: 60, fontSize: 12, color: '#374151' }}>Phase {p.phase}</div>
             <div style={{ flex: 1, background: '#f3f4f6', height: 14, borderRadius: 4, overflow: 'hidden' }}>
               <div style={{
@@ -53,7 +59,11 @@ function TrialTimelineView() {
       </div>
       <div style={{ maxHeight: 320, overflowY: 'auto' }}>
         {data.rows.map(r => (
-          <div key={r.trial_id} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+          <div
+            key={r.trial_id}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3, cursor: 'pointer' }}
+            onClick={() => setDetail({ title: `Trial duration — ${r.trial_id}`, data: r })}
+          >
             <div style={{ width: 130, fontSize: 11, color: '#111827', fontFamily: 'monospace' }}>
               {r.trial_id}
             </div>
@@ -73,6 +83,7 @@ function TrialTimelineView() {
           </div>
         ))}
       </div>
+      {detail && <DetailModal title={detail.title} data={detail.data} onClose={() => setDetail(null)} />}
     </div>
   );
 }

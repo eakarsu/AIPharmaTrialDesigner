@@ -394,6 +394,7 @@ const SAMPLES = {
     {
       label: 'On-track NSCLC Phase 3',
       values: {
+        trial_id: 'ONCO-LUNG-301',
         enrollment_lag_days: 5,
         protocol_deviations: 2,
       },
@@ -401,6 +402,7 @@ const SAMPLES = {
     {
       label: 'Moderate slip — MDD Phase 3',
       values: {
+        trial_id: 'NEURO-MDD-202',
         enrollment_lag_days: 30,
         protocol_deviations: 6,
       },
@@ -408,6 +410,7 @@ const SAMPLES = {
     {
       label: 'Severe slip — RA Phase 3',
       values: {
+        trial_id: 'IMMUN-RA-201',
         enrollment_lag_days: 75,
         protocol_deviations: 14,
       },
@@ -415,6 +418,7 @@ const SAMPLES = {
     {
       label: 'Early signal — AML Phase 1',
       values: {
+        trial_id: 'HEME-AML-201',
         enrollment_lag_days: 14,
         protocol_deviations: 4,
       },
@@ -422,6 +426,7 @@ const SAMPLES = {
     {
       label: 'Crisis — site quality failures',
       values: {
+        trial_id: 'ONCO-LUNG-301',
         enrollment_lag_days: 120,
         protocol_deviations: 28,
       },
@@ -429,11 +434,11 @@ const SAMPLES = {
   ],
 
   'generate-brief': [
-    { label: 'Steering committee update',         values: { audience: 'Steering committee' } },
-    { label: 'Investor quarterly readout',        values: { audience: 'Investors' } },
-    { label: 'FDA Type B pre-meeting',            values: { audience: 'FDA / regulatory pre-meeting' } },
-    { label: 'Internal R&D leadership review',    values: { audience: 'Internal R&D leadership' } },
-    { label: 'Site investigators newsletter',     values: { audience: 'Site investigators' } },
+    { label: 'Steering committee update',         values: { trial_id: 'ONCO-LUNG-301', audience: 'Steering committee' } },
+    { label: 'Investor quarterly readout',        values: { trial_id: 'NEURO-MDD-202', audience: 'Investors' } },
+    { label: 'FDA Type B pre-meeting',            values: { trial_id: 'CARDIO-HF-301', audience: 'FDA / regulatory pre-meeting' } },
+    { label: 'Internal R&D leadership review',    values: { trial_id: 'METAB-T2D-401', audience: 'Internal R&D leadership' } },
+    { label: 'Site investigators newsletter',     values: { trial_id: 'ONCO-LUNG-301', audience: 'Site investigators' } },
   ],
 
   'deviation-classifier': [
@@ -1063,10 +1068,14 @@ const SAMPLES = {
   ],
 };
 
+// Pass 8/9: samples for the newer features live in samplesExtra.js so this
+// legacy registry stays untouched; merged here at lookup time.
+const EXTRA_SAMPLES = require('./samplesExtra');
+
 router.get('/samples', (req, res) => {
   const feature = req.query.feature;
   if (!feature) return res.status(400).json({ error: 'feature query param required' });
-  const samples = SAMPLES[feature];
+  const samples = SAMPLES[feature] || EXTRA_SAMPLES[feature];
   if (!samples) return res.status(404).json({ error: `no samples for feature '${feature}'` });
   res.json({ samples });
 });

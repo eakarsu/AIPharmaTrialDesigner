@@ -39,7 +39,7 @@ function downloadCsv(rows, columns, filename) {
   URL.revokeObjectURL(url);
 }
 
-function CrudTable({ title, subtitle, columns, fields, api, idKey = 'id', emptyRow }) {
+function CrudTable({ title, subtitle, columns, fields, api, idKey = 'id', emptyRow, extraActions }) {
   const [items, setItems] = useState([]);
   const [error, setError] = useState(null);
   const [selected, setSelected] = useState(null);
@@ -148,6 +148,7 @@ function CrudTable({ title, subtitle, columns, fields, api, idKey = 'id', emptyR
           {subtitle && <p>{subtitle}</p>}
         </div>
         <div className="page-actions">
+          {typeof extraActions === 'function' ? extraActions({ items, filtered, selected }) : extraActions}
           <button className="btn btn-secondary" onClick={onExport} title="Export current view to CSV">Export CSV</button>
           <button className="btn btn-primary" onClick={onNew}>+ New {title.replace(/s$/,'')}</button>
         </div>

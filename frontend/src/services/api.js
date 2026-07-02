@@ -183,6 +183,9 @@ export const aiDropoutPredictor  = (body) => request('/ai/dropout-predictor',  {
 export const aiAdaptiveSim       = (body) => request('/ai/adaptive-sim',       { method: 'POST', body: JSON.stringify(body) });
 export const aiRweMatch          = (body) => request('/ai/rwe-match',          { method: 'POST', body: JSON.stringify(body) });
 
+// Generic OpenRouter review for deterministic / memory-backed feature outputs.
+export const featureAiAnalyze = (body) => request('/feature-ai/analyze', { method: 'POST', body: JSON.stringify(body) });
+
 // Comparable-trial finder
 export const findComparableTrials = (body) => request('/comparable-trials/find', { method: 'POST', body: JSON.stringify(body) });
 
@@ -213,3 +216,81 @@ export const customViewsUpdateRule       = (id, data) =>
   request(`/custom-views/design-rules/${id}`, { method: 'PUT', body: JSON.stringify(data) });
 export const customViewsDeleteRule       = (id) =>
   request(`/custom-views/design-rules/${id}`, { method: 'DELETE' });
+
+// ---------- Pass 8 (trial conduct) ----------
+// Randomization / IWRS
+export const listRandomizationSchemes  = () => request('/randomization/schemes');
+export const createRandomizationScheme = (data) => request('/randomization/schemes', { method: 'POST', body: JSON.stringify(data) });
+export const getRandomizationScheme    = (schemeId) => request(`/randomization/schemes/${encodeURIComponent(schemeId)}`);
+export const randomizeSubject          = (schemeId, data) =>
+  request(`/randomization/schemes/${encodeURIComponent(schemeId)}/assign`, { method: 'POST', body: JSON.stringify(data) });
+export const getIrtKits = (params = {}) => {
+  const q = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== '' && v != null));
+  return request(`/randomization/irt/kits${q.toString() ? `?${q.toString()}` : ''}`);
+};
+export const getIrtDispenses = () => request('/randomization/irt/dispenses');
+export const dispenseIrtKit = (data) => request('/randomization/irt/dispense', { method: 'POST', body: JSON.stringify(data) });
+
+// SDTM-shaped export
+export const sdtmDomains = () => request('/sdtm/domains');
+export const sdtmExport  = (domain, trial) =>
+  request(`/sdtm/${encodeURIComponent(domain)}${trial ? `?trial=${encodeURIComponent(trial)}` : ''}`);
+
+// DSMB packet + enrollment forecast
+export const dsmbPacket         = (body) => request('/dsmb/packet', { method: 'POST', body: JSON.stringify(body) });
+export const enrollmentForecast = (body) => request('/enrollment-forecast/run', { method: 'POST', body: JSON.stringify(body) });
+
+// ADVISORY AI verbs
+export const aiMeddraCode      = (body) => request('/ai/meddra-code',      { method: 'POST', body: JSON.stringify(body) });
+export const aiSafetyNarrative = (body) => request('/ai/safety-narrative', { method: 'POST', body: JSON.stringify(body) });
+
+// Form 1572 draft
+export const generateForm1572 = (body) => request('/form-1572/generate', { method: 'POST', body: JSON.stringify(body) });
+
+// Delegation log + training records (CRUD)
+export const getDelegationLog    = () => request('/delegation-log');
+export const createDelegationLog = (data) => request('/delegation-log', { method: 'POST', body: JSON.stringify(data) });
+export const updateDelegationLog = (id, data) => request(`/delegation-log/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+export const deleteDelegationLog = (id) => request(`/delegation-log/${id}`, { method: 'DELETE' });
+
+export const getTrainingRecords   = () => request('/training-records');
+export const createTrainingRecord = (data) => request('/training-records', { method: 'POST', body: JSON.stringify(data) });
+export const updateTrainingRecord = (id, data) => request(`/training-records/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+export const deleteTrainingRecord = (id) => request(`/training-records/${id}`, { method: 'DELETE' });
+
+// ---------- Pass 9 (integrations + real stats + compliance mechanics) ----------
+// LIVE ClinicalTrials.gov v2 (public read API)
+export const ctgovSearch = (params) => {
+  const q = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== '' && v != null));
+  return request(`/ctgov/search?${q.toString()}`);
+};
+
+// Design statistics
+export const designPower    = (body) => request('/design-sim/power',    { method: 'POST', body: JSON.stringify(body) });
+export const designSimulate = (body) => request('/design-sim/simulate', { method: 'POST', body: JSON.stringify(body) });
+
+// Part 11-style audit chain
+export const getAuditTrail    = (limit = 100) => request(`/audit-trail?limit=${limit}`);
+export const verifyAuditTrail = () => request('/audit-trail/verify');
+
+// eConsent
+export const getConsentForms     = () => request('/econsent/forms');
+export const createConsentForm   = (data) => request('/econsent/forms', { method: 'POST', body: JSON.stringify(data) });
+export const getConsentRecords   = () => request('/econsent/records');
+export const signConsentRecord   = (data) => request('/econsent/records', { method: 'POST', body: JSON.stringify(data) });
+
+// AI-vs-deterministic comparison (comparable trials + protocol graph)
+export const findComparableTrialsAi = (body) => request('/comparable-trials/find-ai', { method: 'POST', body: JSON.stringify(body) });
+export const protocolGraphAi        = (body) => request('/protocols-graph/graph-ai',  { method: 'POST', body: JSON.stringify(body) });
+
+// ---------- Pass 10 production-readiness gap closures ----------
+export const getPermissionsMatrix = () => request('/production-readiness/permissions-matrix');
+export const getValidationEvidence = () => request('/production-readiness/validation-evidence');
+export const getIrtEvents = () => request('/production-readiness/irt/events');
+export const getIrtResupplyForecast = () => request('/production-readiness/irt/resupply-forecast');
+export const updateIrtKitLifecycle = (kitId, data) =>
+  request(`/production-readiness/irt/kit/${encodeURIComponent(kitId)}/lifecycle`, { method: 'POST', body: JSON.stringify(data) });
+export const emergencyUnblind = (data) =>
+  request('/production-readiness/irt/emergency-unblind', { method: 'POST', body: JSON.stringify(data) });
+export const sdtmValidate = (domain) => request(`/production-readiness/sdtm-validate/${encodeURIComponent(domain)}`);
+export const complianceExport = () => request('/production-readiness/compliance-export');

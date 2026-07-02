@@ -44,7 +44,13 @@ function AIModelRiskPage() {
         <button className="btn btn-secondary" onClick={() => setHistoryOpen(true)}>History</button>
       </div>
       <div className="card">
-        <SampleButtons feature={FEATURE} onPick={(values) => setForm(prev => ({ ...prev, ...values }))} />
+        <SampleButtons feature={FEATURE} onPick={(values) => {
+          if (values.trial_id) {
+            const match = trials.find(t => t.trial_id === values.trial_id);
+            if (match) setSelectedId(String(match.id));
+          }
+          setForm(prev => ({ ...prev, ...values }));
+        }} />
         <div className="form-grid">
           <div className="form-group full"><label>Trial</label>
             <select value={selectedId} onChange={e => setSelectedId(e.target.value)}>

@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import DetailModal from '../components/DetailModal';
 
 const initialItems = [
   { id: 1, owner: 'Ops', priority: 'High', status: 'Ready', task: 'Review exception queue' },
@@ -9,6 +10,7 @@ const initialItems = [
 export default function CodexOperationsFeature() {
   const [query, setQuery] = useState('');
   const [items, setItems] = useState(initialItems);
+  const [detail, setDetail] = useState(null);
   const [task, setTask] = useState('');
 
   const filtered = useMemo(() => {
@@ -27,6 +29,11 @@ export default function CodexOperationsFeature() {
     setTask('');
   }
 
+  function deleteTask(row) {
+    setItems((current) => current.filter((item) => item.id !== row.id));
+    setDetail(null);
+  }
+
   return (
     <section style={{ padding: 24, color: '#172033' }}>
       <p style={{ margin: 0, color: '#64748b', fontSize: 13, fontWeight: 700, textTransform: 'uppercase' }}>Non-visual workflow</p>
@@ -41,7 +48,11 @@ export default function CodexOperationsFeature() {
 
       <div style={{ border: '1px solid #d7dde8', borderRadius: 8, overflow: 'hidden', background: '#ffffff' }}>
         {filtered.map((item) => (
-          <div key={item.id} style={{ display: 'grid', gridTemplateColumns: '1fr 120px 120px 120px', gap: 12, padding: 14, borderBottom: '1px solid #e2e8f0', alignItems: 'center' }}>
+          <div
+            key={item.id}
+            style={{ display: 'grid', gridTemplateColumns: '1fr 120px 120px 120px', gap: 12, padding: 14, borderBottom: '1px solid #e2e8f0', alignItems: 'center', cursor: 'pointer' }}
+            onClick={() => setDetail({ title: `Workflow item — ${item.task}`, data: item })}
+          >
             <strong>{item.task}</strong>
             <span>{item.owner}</span>
             <span>{item.priority}</span>
@@ -50,6 +61,14 @@ export default function CodexOperationsFeature() {
         ))}
         {filtered.length === 0 && <div style={{ padding: 18, color: '#64748b' }}>No matching workflow items.</div>}
       </div>
+      {detail && (
+        <DetailModal
+          title={detail.title}
+          data={detail.data}
+          onClose={() => setDetail(null)}
+          onDelete={deleteTask}
+        />
+      )}
     </section>
   );
 }
