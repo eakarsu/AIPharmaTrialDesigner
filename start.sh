@@ -1,114 +1,71 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -Eeuo pipefail
 
-set -e
+APP_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+cd "$APP_ROOT"
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-MAGENTA='\033[0;35m'
-NC='\033[0m'
-
-echo -e "${CYAN}╔══════════════════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║   AI Pharma Clinical Trial Designer                  ║${NC}"
-echo -e "${CYAN}╚══════════════════════════════════════════════════════╝${NC}"
-echo ""
-
-# Load env
-if [ -f .env ]; then
-  export $(grep -v '^#' .env | xargs)
-fi
-
-BACKEND_PORT=${BACKEND_PORT:-3041}
-FRONTEND_PORT=${FRONTEND_PORT:-3040}
-
-# Kill processes on used ports — and any nodemon/react-scripts parents for THIS
-# app, otherwise a respawned child instantly re-grabs the port before we start.
-echo -e "${YELLOW}Cleaning up ports $BACKEND_PORT and $FRONTEND_PORT...${NC}"
-# 1) kill nodemon / react-scripts parents scoped to this app's path
-pkill -9 -f "AIPharmaTrialDesigner/backend.*nodemon"        2>/dev/null || true
-pkill -9 -f "AIPharmaTrialDesigner/backend.*server\.js"     2>/dev/null || true
-pkill -9 -f "AIPharmaTrialDesigner/frontend.*react-scripts" 2>/dev/null || true
-# 2) then kill whatever's still listening on the ports
-lsof -ti:$BACKEND_PORT  2>/dev/null | xargs kill -9 2>/dev/null || true
-lsof -ti:$FRONTEND_PORT 2>/dev/null | xargs kill -9 2>/dev/null || true
-# 3) wait until both ports are actually free (max ~6s)
-for _ in 1 2 3 4 5 6; do
-  if ! lsof -i:$BACKEND_PORT -i:$FRONTEND_PORT 2>/dev/null | grep -q LISTEN; then break; fi
-  sleep 1
-done
-echo -e "${GREEN}Ports cleaned${NC}"
-
-# Check PostgreSQL
-echo -e "${YELLOW}Checking PostgreSQL...${NC}"
-if ! command -v psql &> /dev/null; then
-  echo -e "${RED}PostgreSQL is not installed. Please install it first.${NC}"
+if [[ ! -f .env ]]; then
+  echo 'Missing .env; copy .env.example and provide local secrets.' >&2
   exit 1
 fi
+BACKEND_PORT=${BACKEND_PORT:-3041}
+FRONTEND_PORT=${FRONTEND_PORT:-3040}
+export BACKEND_PORT
 
-if ! pg_isready -h ${DB_HOST:-localhost} -p ${DB_PORT:-5432} > /dev/null 2>&1; then
-  echo -e "${YELLOW}Starting PostgreSQL...${NC}"
-  if [[ "$OSTYPE" == "darwin"* ]]; then
-    brew services start postgresql@14 2>/dev/null || brew services start postgresql 2>/dev/null || true
-  else
-    sudo systemctl start postgresql 2>/dev/null || true
+for dependency_dir in backend/node_modules; do
+  if [[ ! -d "$dependency_dir" ]]; then
+    echo "Missing $dependency_dir; install dependencies explicitly before starting." >&2
+    exit 1
   fi
-  sleep 2
+done
+
+check_port() {
+  local port="$1"
+  if command -v lsof >/dev/null 2>&1 && lsof -nP -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1; then
+    echo "Port $port is already in use; refusing to terminate an unrelated process." >&2
+    exit 1
+  fi
+}
+check_port "$BACKEND_PORT"
+
+if [[ "${NODE_ENV:-}" == "test" ]]; then
+  echo "Starting API-only test runtime on port $BACKEND_PORT."
+  cd backend
+  exec node server.js
 fi
-echo -e "${GREEN}PostgreSQL is running${NC}"
 
-# Create database if not exists
-echo -e "${YELLOW}Setting up database...${NC}"
-psql -h ${DB_HOST:-localhost} -p ${DB_PORT:-5432} -U ${DB_USER:-postgres} -tc "SELECT 1 FROM pg_database WHERE datname = '${DB_NAME:-pharma_trial_designer}'" 2>/dev/null | grep -q 1 || \
-  psql -h ${DB_HOST:-localhost} -p ${DB_PORT:-5432} -U ${DB_USER:-postgres} -c "CREATE DATABASE ${DB_NAME:-pharma_trial_designer}" 2>/dev/null || \
-  createdb -h ${DB_HOST:-localhost} -p ${DB_PORT:-5432} -U ${DB_USER:-postgres} ${DB_NAME:-pharma_trial_designer} 2>/dev/null || true
-echo -e "${GREEN}Database ready${NC}"
+if [[ ! -d frontend/node_modules ]]; then
+  echo "Missing frontend/node_modules; install dependencies explicitly before starting." >&2
+  exit 1
+fi
+check_port "$FRONTEND_PORT"
 
-# Install dependencies
-echo -e "${YELLOW}Installing dependencies...${NC}"
-cd backend && npm install --silent 2>/dev/null && cd ..
-cd frontend && npm install --silent 2>/dev/null && cd ..
-echo -e "${GREEN}Dependencies installed${NC}"
+BACKEND_PID=
+FRONTEND_PID=
+cleanup() {
+  local status=$?
+  trap - EXIT INT TERM
+  [[ -n "${BACKEND_PID:-}" ]] && kill "$BACKEND_PID" 2>/dev/null || true
+  [[ -n "${FRONTEND_PID:-}" ]] && kill "$FRONTEND_PID" 2>/dev/null || true
+  [[ -n "${BACKEND_PID:-}" ]] && wait "$BACKEND_PID" 2>/dev/null || true
+  [[ -n "${FRONTEND_PID:-}" ]] && wait "$FRONTEND_PID" 2>/dev/null || true
+  exit "$status"
+}
+trap cleanup EXIT INT TERM
 
-# Seed database
-echo -e "${YELLOW}Seeding database...${NC}"
-cd backend && node seed/seed.js && cd ..
-echo -e "${GREEN}Database seeded${NC}"
-
-# Start backend with nodemon (auto-reload)
-echo -e "${BLUE}Starting backend on port $BACKEND_PORT...${NC}"
-( cd backend && npx nodemon server.js ) &
+(cd backend && npm start) &
 BACKEND_PID=$!
-
-sleep 2
-
-# Start frontend (React dev server auto-reloads)
-echo -e "${MAGENTA}Starting frontend on port $FRONTEND_PORT...${NC}"
-( cd frontend && BROWSER=none PORT=$FRONTEND_PORT npm start ) &
+(cd frontend && BROWSER=none PORT="$FRONTEND_PORT" npm start) &
 FRONTEND_PID=$!
 
-echo ""
-echo -e "${GREEN}╔══════════════════════════════════════════════════════╗${NC}"
-echo -e "${GREEN}║  Application is starting...                          ║${NC}"
-echo -e "${GREEN}║  Frontend: http://localhost:$FRONTEND_PORT                  ║${NC}"
-echo -e "${GREEN}║  Backend:  http://localhost:$BACKEND_PORT                  ║${NC}"
-echo -e "${GREEN}║                                                      ║${NC}"
-echo -e "${GREEN}║  Both servers auto-reload on file changes            ║${NC}"
-echo -e "${GREEN}╚══════════════════════════════════════════════════════╝${NC}"
-echo ""
+while kill -0 "$BACKEND_PID" 2>/dev/null && kill -0 "$FRONTEND_PID" 2>/dev/null; do
+  sleep 1
+done
 
-cleanup() {
-  echo -e "\n${YELLOW}Shutting down...${NC}"
-  kill $BACKEND_PID 2>/dev/null || true
-  kill $FRONTEND_PID 2>/dev/null || true
-  lsof -ti:$BACKEND_PORT 2>/dev/null | xargs kill -9 2>/dev/null || true
-  lsof -ti:$FRONTEND_PORT 2>/dev/null | xargs kill -9 2>/dev/null || true
-  echo -e "${GREEN}Shutdown complete${NC}"
-  exit 0
-}
-
-trap cleanup SIGINT SIGTERM
-
-wait
+status=0
+if ! kill -0 "$BACKEND_PID" 2>/dev/null; then
+  wait "$BACKEND_PID" || status=$?
+else
+  wait "$FRONTEND_PID" || status=$?
+fi
+exit "$status"

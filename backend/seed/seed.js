@@ -1,18 +1,34 @@
 const fs = require('fs');
 const path = require('path');
 const bcrypt = require('bcryptjs');
+const crypto = require('node:crypto');
 const { Pool } = require('pg');
 require('dotenv').config({ path: path.join(__dirname, '../../.env') });
+const { databaseUrl } = require('../config/security');
 
 const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 5432,
-  database: process.env.DB_NAME || 'pharma_trial_designer',
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || 'postgres',
+  connectionString: databaseUrl(),
 });
 
 async function seed() {
+  if (process.env.ALLOW_DESTRUCTIVE_SEED !== 'true') throw new Error('set ALLOW_DESTRUCTIVE_SEED=true to run the destructive demo seed explicitly');
+  const demoSeed = process.env.ALLOW_DEMO_SEED === 'true' && process.env.NODE_ENV !== 'production';
+  const seedUsers = [
+    [process.env.SEED_PI_EMAIL || (demoSeed ? process.env.DEMO_EMAIL || process.env.ADMIN_EMAIL : ''), process.env.SEED_PI_PASSWORD || (demoSeed ? process.env.DEMO_PASSWORD || process.env.ADMIN_PASSWORD : ''), 'Demo Principal Investigator', 'pi'],
+    [process.env.SEED_SPONSOR_EMAIL, process.env.SEED_SPONSOR_PASSWORD, 'Demo Sponsor Operations', 'sponsor'],
+    [process.env.SEED_MONITOR_EMAIL, process.env.SEED_MONITOR_PASSWORD, 'Demo CRA Monitor', 'monitor'],
+  ].filter(([email, password]) => email && password);
+  if (!seedUsers.length) throw new Error('at least one explicit SEED_* credential pair is required');
+  const partiallyConfigured = [
+    [process.env.SEED_PI_EMAIL, process.env.SEED_PI_PASSWORD],
+    [process.env.SEED_SPONSOR_EMAIL, process.env.SEED_SPONSOR_PASSWORD],
+    [process.env.SEED_MONITOR_EMAIL, process.env.SEED_MONITOR_PASSWORD],
+  ].some(([email, password]) => Boolean(email) !== Boolean(password));
+  if (partiallyConfigured) throw new Error('each configured SEED_* user requires both email and password');
+  const webhookSecret = process.env.SEED_WEBHOOK_SECRET || (demoSeed && process.env.JWT_SECRET
+    ? crypto.createHash('sha256').update(`demo-webhook:${process.env.JWT_SECRET}`).digest('hex')
+    : '');
+  if (!webhookSecret) throw new Error('SEED_WEBHOOK_SECRET is required');
   const client = await pool.connect();
   try {
     console.log('Resetting tables...');
@@ -445,29 +461,23 @@ async function seed() {
     console.log(`Seeded ${shipments.length} supply shipments`);
 
     // ---------- USERS (RBAC: sponsor, pi, monitor) ----------
-    const piPw       = await bcrypt.hash('trial2026', 10);
-    const sponsorPw  = await bcrypt.hash('sponsor2026', 10);
-    const monitorPw  = await bcrypt.hash('monitor2026', 10);
-    const users = [
-      ['pi@trials.io',       piPw,      'Demo Principal Investigator', 'pi'],
-      ['sponsor@trials.io',  sponsorPw, 'Demo Sponsor Operations',     'sponsor'],
-      ['monitor@trials.io',  monitorPw, 'Demo CRA Monitor',            'monitor'],
-    ];
-    for (const u of users) {
+    for (const [email, password, name, role] of seedUsers) {
+      const passwordHash = await bcrypt.hash(password, 10);
       await client.query(
         `INSERT INTO users (email, password, name, role) VALUES ($1,$2,$3,$4)
          ON CONFLICT (email) DO UPDATE SET password=EXCLUDED.password, name=EXCLUDED.name, role=EXCLUDED.role`,
-        u
+        [email, passwordHash, name, role]
       );
     }
-    console.log('Seeded RBAC users: pi@trials.io / sponsor@trials.io / monitor@trials.io');
+    console.log('Seeded configured RBAC users');
 
     // ---------- WEBHOOKS (demo subscriber) ----------
     await client.query(
       `INSERT INTO webhooks (name, url, event, secret, active) VALUES
-       ('demo-deviation', 'http://localhost:3041/api/webhooks/test-receiver', 'deviation.created', 'whsec_demo_2026', true),
-       ('demo-sae',       'http://localhost:3041/api/webhooks/test-receiver', 'ae.serious',        'whsec_demo_2026', true),
-       ('demo-amendment', 'http://localhost:3041/api/webhooks/test-receiver', 'amendment.approved','whsec_demo_2026', true)`
+       ('demo-deviation', 'http://localhost:3041/api/webhooks/test-receiver', 'deviation.created', $1, true),
+       ('demo-sae',       'http://localhost:3041/api/webhooks/test-receiver', 'ae.serious',        $1, true),
+       ('demo-amendment', 'http://localhost:3041/api/webhooks/test-receiver', 'amendment.approved',$1, true)`,
+      [webhookSecret]
     );
     console.log('Seeded 3 demo webhooks');
 

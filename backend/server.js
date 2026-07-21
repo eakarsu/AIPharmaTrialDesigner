@@ -9,7 +9,8 @@ const app = express();
 const PORT = process.env.BACKEND_PORT || 3041;
 
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
-app.use(cors({ origin: true, credentials: true }));
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3040').split(',').map((origin) => origin.trim()).filter(Boolean);
+app.use(cors({ origin: (origin, callback) => (!origin || allowedOrigins.includes(origin) ? callback(null, true) : callback(new Error('cors origin denied'))), credentials: true }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
@@ -23,7 +24,10 @@ app.use('/api/auth', require('./routes/auth'));
 
 // Webhook test receiver (public, no auth — simulates a downstream subscriber).
 // Logs the signature header so it shows up in the delivery log.
-app.post('/api/webhooks/test-receiver', express.json(), (req, res) => {
+app.post('/api/webhooks/test-receiver', (req, res, next) => {
+  if (process.env.NODE_ENV === 'production' || process.env.ENABLE_TEST_RECEIVER !== 'true') return res.status(404).json({ error: 'Not found' });
+  next();
+}, express.json(), (req, res) => {
   const sig = req.headers['x-webhook-signature'];
   console.log(`[webhook-receiver] event=${req.body?.event} signature=${sig}`);
   res.json({ received: true, event: req.body?.event, signature_seen: !!sig });
@@ -40,6 +44,7 @@ app.use('/api', pass9.auditMiddleware);
 
 // Read-open CRUD routes (RBAC: any authenticated user can read; only sponsor+pi can write)
 const writeGate = requireWrite();
+app.use('/api/trial-design-workflows', writeGate, require('./routes/trialWorkflow'));
 
 app.use('/api/trials',        writeGate, require('./routes/trials'));
 app.use('/api/sites',         writeGate, require('./routes/sites'));

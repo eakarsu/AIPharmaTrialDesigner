@@ -148,8 +148,8 @@ module.exports = {
     { label: 'Heart failure, completed', values: { condition: 'heart failure', term: '', status: 'COMPLETED' } },
   ],
   'econsent-sign': [
-    { label: 'Main-study consent, PT-0002', values: { form_id: 'ICF-ONCO-301', patient: 'PT-0002', meaning: 'Consent obtained from subject', password: 'trial2026' } },
-    { label: 'Re-consent after amendment, PT-0003', values: { form_id: 'ICF-ONCO-301', patient: 'PT-0003', meaning: 'Re-consent after amendment', password: 'trial2026' } },
-    { label: 'NEURO-MDD consent, PT-0006', values: { form_id: 'ICF-NEURO-202', patient: 'PT-0006', meaning: 'Consent obtained from subject', password: 'trial2026' } },
+    { label: 'Main-study consent, PT-0002', values: { form_id: 'ICF-ONCO-301', patient: 'PT-0002', meaning: 'Consent obtained from subject', password: '' } },
+    { label: 'Re-consent after amendment, PT-0003', values: { form_id: 'ICF-ONCO-301', patient: 'PT-0003', meaning: 'Re-consent after amendment', password: '' } },
+    { label: 'NEURO-MDD consent, PT-0006', values: { form_id: 'ICF-NEURO-202', patient: 'PT-0006', meaning: 'Consent obtained from subject', password: '' } },
   ],
 };
