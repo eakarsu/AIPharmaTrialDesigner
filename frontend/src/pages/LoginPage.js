@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { login } from '../services/api';
 
 function LoginPage({ onLogin }) {
-  const [email, setEmail] = useState('pi@trials.io');
-  const [password, setPassword] = useState('trial2026');
+  const [email, setEmail] = useState(process.env.REACT_APP_DEMO_EMAIL || '');
+  const [password, setPassword] = useState(process.env.REACT_APP_DEMO_PASSWORD || '');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
