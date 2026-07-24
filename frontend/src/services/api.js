@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:3041/api';
+const API_BASE = `${process.env.REACT_APP_API_URL || ''}/api`;
 
 function getHeaders(extra) {
   const token = localStorage.getItem('token');

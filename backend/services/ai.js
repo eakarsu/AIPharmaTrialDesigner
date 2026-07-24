@@ -1,55 +1,36 @@
-const https = require('https');
 require('dotenv').config({ path: '../.env' });
 
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || 'anthropic/claude-haiku-4.5';
 const SYSTEM_PROMPT = 'You are an expert clinical trial methodologist, biostatistician, and pharmaceutical R&D advisor. Provide rigorous, evidence-based, regulator-aware recommendations grounded in ICH-GCP, FDA, and EMA guidance. Always return STRICT JSON when a schema is given.';
 
 async function callOpenRouter(systemPrompt, userPrompt) {
-  return new Promise((resolve, reject) => {
-    const data = JSON.stringify({
-      model: OPENROUTER_MODEL,
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  const model = process.env.OPENROUTER_MODEL;
+  const baseUrl = process.env.OPENROUTER_BASE_URL;
+  if (!apiKey || !model || !baseUrl) throw new Error('OpenRouter key, model, and base URL are required');
+
+  const response = await fetch(`${baseUrl.replace(/\/$/, '')}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+      'HTTP-Referer': process.env.CLIENT_URL,
+      'X-Title': 'AI Pharma Trial Designer',
+    },
+    body: JSON.stringify({
+      model,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
       ],
       temperature: 0.5,
       max_tokens: 2500,
-    });
-
-    const options = {
-      hostname: 'openrouter.ai',
-      path: '/api/v1/chat/completions',
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-        'HTTP-Referer': 'http://localhost:3040',
-        'X-Title': 'AI Pharma Trial Designer',
-      },
-    };
-
-    const req = https.request(options, (res) => {
-      let body = '';
-      res.on('data', (chunk) => (body += chunk));
-      res.on('end', () => {
-        let parsed;
-        try { parsed = JSON.parse(body); } catch (e) {
-          return resolve({ error: 'AI response parsing failed', raw: body });
-        }
-        if (parsed.error) {
-          reject(new Error(parsed.error.message || 'OpenRouter API error'));
-        } else {
-          const content = parsed.choices?.[0]?.message?.content || 'No response generated';
-          resolve(content);
-        }
-      });
-    });
-
-    req.on('error', reject);
-    req.write(data);
-    req.end();
+    }),
   });
+  const data = await response.json();
+  if (!response.ok || data.error) throw new Error(data.error?.message || `OpenRouter API error (${response.status})`);
+  const content = data.choices?.[0]?.message?.content;
+  if (!content || !String(content).trim()) throw new Error('OpenRouter returned empty content');
+  return content;
 }
 
 function safeJsonParse(response, fallback) {

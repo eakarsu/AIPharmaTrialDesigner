@@ -8,9 +8,13 @@ if [[ ! -f .env ]]; then
   echo 'Missing .env; copy .env.example and provide local secrets.' >&2
   exit 1
 fi
-BACKEND_PORT=${BACKEND_PORT:-3041}
-FRONTEND_PORT=${FRONTEND_PORT:-3040}
-export BACKEND_PORT
+set -a
+source .env
+set +a
+: "${BACKEND_PORT:?BACKEND_PORT is required}"
+: "${FRONTEND_PORT:?FRONTEND_PORT is required}"
+[[ "${ALLOW_SCHEMA_MIGRATION:-}" == "true" ]] || { echo 'ALLOW_SCHEMA_MIGRATION=true is required.' >&2; exit 1; }
+export BACKEND_PORT FRONTEND_PORT
 
 for dependency_dir in backend/node_modules; do
   if [[ ! -d "$dependency_dir" ]]; then
@@ -27,6 +31,8 @@ check_port() {
   fi
 }
 check_port "$BACKEND_PORT"
+
+(cd backend && node scripts/prepareRuntime.js)
 
 if [[ "${NODE_ENV:-}" == "test" ]]; then
   echo "Starting API-only test runtime on port $BACKEND_PORT."
@@ -53,7 +59,7 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-(cd backend && npm start) &
+(cd backend && node server.js) &
 BACKEND_PID=$!
 (cd frontend && BROWSER=none PORT="$FRONTEND_PORT" npm start) &
 FRONTEND_PID=$!
