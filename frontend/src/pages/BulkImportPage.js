@@ -1,3 +1,4 @@
+import GeneratedAiResponse from './GeneratedAiResponse';
 import React, { useState } from 'react';
 import { bulkImport } from '../services/api';
 
@@ -78,7 +79,7 @@ export default function BulkImportPage() {
           {result.errors?.length > 0 && (
             <>
               <h4>Errors (first {result.errors.length})</h4>
-              <pre>{JSON.stringify(result.errors, null, 2)}</pre>
+              <GeneratedAiResponse response={result} />
             </>
           )}
         </div>
