@@ -2,12 +2,21 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login } from '../services/api';
 
+const DEMO_EMAIL = process.env.REACT_APP_DEMO_EMAIL || '';
+const DEMO_PASSWORD = process.env.REACT_APP_DEMO_PASSWORD || '';
+
 function LoginPage({ onLogin }) {
-  const [email, setEmail] = useState(process.env.REACT_APP_DEMO_EMAIL || '');
-  const [password, setPassword] = useState(process.env.REACT_APP_DEMO_PASSWORD || '');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  const fillDemoCredentials = () => {
+    setEmail(DEMO_EMAIL);
+    setPassword(DEMO_PASSWORD);
+    setError(null);
+  };
 
   const onSubmit = async (e) => {
     if (e) e.preventDefault();
@@ -54,8 +63,11 @@ function LoginPage({ onLogin }) {
           />
         </div>
         {error && <div className="ai-error" style={{ marginBottom: 12 }}>{error}</div>}
+        <button type="button" className="btn" onClick={fillDemoCredentials} disabled={loading} style={{ width: '100%', marginBottom: 10 }}>
+          Auto Fill Demo Credentials
+        </button>
         <button type="submit" className="btn btn-primary" disabled={loading} style={{ width: '100%' }}>
-          {loading ? 'Signing in...' : 'Sign in'}
+          {loading ? 'Signing in...' : 'Sign In'}
         </button>
         <div className="login-hint">
           Demo logins:<br/>
