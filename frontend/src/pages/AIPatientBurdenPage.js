@@ -1,7 +1,8 @@
+import NativeAIControls from "../components/NativeAIControls.jsx";
 import React, { useState } from 'react';
 import AIResult from '../components/AIResult';
 import AIHistory from '../components/AIHistory';
-import SampleButtons from '../components/SampleButtons';
+
 import { aiPatientBurden } from '../services/api';
 
 const FEATURE = 'patient-burden';
@@ -59,7 +60,7 @@ function AIPatientBurdenPage() {
   };
 
   return (
-    <div>
+    <NativeAIControls busy={loading} context="PharmaTrialDesigner"><div>
       <div className="page-header">
         <div>
           <h2>Patient Burden Estimator</h2>
@@ -68,22 +69,20 @@ function AIPatientBurdenPage() {
         <button className="btn btn-secondary" onClick={() => setHistoryOpen(true)}>History</button>
       </div>
       <div className="card">
-        <SampleButtons feature={FEATURE} onPick={(values) => {
-          if (Array.isArray(values.visits)) setVisits(values.visits);
-        }} />
+
         {visits.map((v, vIdx) => (
           <div key={vIdx} style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: 12, marginBottom: 12 }}>
             <div className="form-grid">
-              <div className="form-group"><label>Visit Name</label><input value={v.name} onChange={(e) => updateVisit(vIdx, 'name', e.target.value)} /></div>
-              <div className="form-group"><label>One-way travel (min)</label><input type="number" value={v.travel_minutes} onChange={(e) => updateVisit(vIdx, 'travel_minutes', Number(e.target.value))} /></div>
+              <div className="form-group"><label>Visit Name</label><input data-ai-field={"name"} value={v.name} onChange={(e) => updateVisit(vIdx, 'name', e.target.value)} /></div>
+              <div className="form-group"><label>One-way travel (min)</label><input data-ai-field={"travel_minutes"} type="number" value={v.travel_minutes} onChange={(e) => updateVisit(vIdx, 'travel_minutes', Number(e.target.value))} /></div>
             </div>
             <table style={{ width: '100%', marginTop: 8 }}>
               <thead><tr><th align="left">Procedure</th><th align="right">Minutes</th></tr></thead>
               <tbody>
                 {(v.procedures || []).map((p, pIdx) => (
                   <tr key={pIdx}>
-                    <td><input style={{ width: '100%' }} value={p.name} onChange={(e) => updateProc(vIdx, pIdx, 'name', e.target.value)} /></td>
-                    <td align="right"><input type="number" style={{ width: 80 }} value={p.minutes} onChange={(e) => updateProc(vIdx, pIdx, 'minutes', e.target.value)} /></td>
+                    <td><input data-ai-field={"name"} style={{ width: '100%' }} value={p.name} onChange={(e) => updateProc(vIdx, pIdx, 'name', e.target.value)} /></td>
+                    <td align="right"><input data-ai-field={"minutes"} type="number" style={{ width: 80 }} value={p.minutes} onChange={(e) => updateProc(vIdx, pIdx, 'minutes', e.target.value)} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -98,7 +97,7 @@ function AIPatientBurdenPage() {
       </div>
       <AIResult result={result} loading={loading} error={error} />
       <AIHistory feature={FEATURE} open={historyOpen} onClose={() => setHistoryOpen(false)} />
-    </div>
+    </div></NativeAIControls>
   );
 }
 export default AIPatientBurdenPage;

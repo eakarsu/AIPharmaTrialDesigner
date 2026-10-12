@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import SampleButtons from '../components/SampleButtons';
+import AIFieldPresets from '../components/AIFieldPresets';
+import { useClinicalReferences, pickClinicalReference, ClinicalReferenceStatus, clinicalSourceChoices } from '../components/ClinicalSourcePresets';
 import DetailModal from '../components/DetailModal';
 import AIResult from '../components/AIResult';
 import { sdtmDomains, sdtmExport, featureAiAnalyze } from '../services/api';
@@ -29,6 +30,12 @@ function SdtmExportPage() {
   const [loading, setLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [detail, setDetail] = useState(null);
+  const source = useClinicalReferences(['trials']);
+  const trials = source.records.trials || [];
+  const fillSource = (_, index) => {
+    setDomain(domains[index % (domains.length || 1)]?.domain || '');
+    setTrial(pickClinicalReference(trial, trials, 'trial_id', index));
+  };
 
   useEffect(() => { sdtmDomains().then(setDomains).catch(e => setError(e.message)); }, []);
 
@@ -68,17 +75,17 @@ function SdtmExportPage() {
 
       {error && <div className="card" style={{ borderLeft: '4px solid #dc2626', color: '#dc2626' }}>{error}</div>}
 
-      <SampleButtons feature="sdtm-export" onPick={(v) => { if (v.domain !== undefined) setDomain(v.domain); if (v.trial !== undefined) setTrial(v.trial); }} />
-
       <div className="card">
+        <ClinicalReferenceStatus source={source} required={['trials']} />
+        <AIFieldPresets fields={[{key:'domain',type:'select',options:domains.map(row=>row.domain)}, {key:'trial',recordReference:true,options:trials.map(row=>row.trial_id)}]} samples={clinicalSourceChoices} onFill={fillSource} disabled={aiLoading || loading || source.loading} context="SDTM-shaped source review" />
         <div className="form-grid">
           <div className="form-group"><label>Domain</label>
-            <select value={domain} onChange={e => setDomain(e.target.value)}>
+            <select data-ai-field="domain" value={domain} onChange={e => setDomain(e.target.value)}>
               {domains.map(d => <option key={d.domain} value={d.domain}>{d.domain} — {d.label}</option>)}
             </select>
           </div>
           <div className="form-group"><label>Trial ID (blank = all trials)</label>
-            <input value={trial} onChange={e => setTrial(e.target.value)} placeholder="e.g. ONCO-LUNG-301" />
+            <select data-ai-field="trial" value={trial} onChange={e=>setTrial(e.target.value)}><option value="">All accessible trials</option>{trials.map(row=><option key={row.trial_id} value={row.trial_id}>{row.trial_id}</option>)}</select>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import SampleButtons from '../components/SampleButtons';
+import AIFieldPresets from '../components/AIFieldPresets';
+import { useClinicalReferences, pickClinicalReference, ClinicalReferenceStatus, clinicalSourceChoices } from '../components/ClinicalSourcePresets';
 import DetailModal from '../components/DetailModal';
 import AIResult from '../components/AIResult';
 import { getConsentForms, createConsentForm, getConsentRecords, signConsentRecord, featureAiAnalyze } from '../services/api';
@@ -60,6 +61,9 @@ function EConsentPage() {
   }
 
   const formIds = [...new Set(forms.map(f => f.form_id))];
+  const source = useClinicalReferences(['patients']);
+  const patients = source.records.patients || [];
+  const fillReviewSource = (_, index) => setSign(current => ({ ...current, form_id: pickClinicalReference(current.form_id, forms, 'form_id', index), patient: pickClinicalReference(current.patient, patients, 'patient_id', index) }));
 
   return (
     <div>
@@ -87,25 +91,26 @@ function EConsentPage() {
         </div>
       )}
 
-      <SampleButtons feature="econsent-sign" onPick={(v) => setSign(s => ({ ...s, ...v }))} />
-
       <div className="card">
         <h3>Sign Consent (e-signature)</h3>
+        <ClinicalReferenceStatus source={source} required={['patients']} />
+        <AIFieldPresets fields={[{key:'form_id',options:formIds},{key:'patient',recordReference:true,options:patients.map(row=>row.patient_id)}]} samples={clinicalSourceChoices} onFill={fillReviewSource} disabled={aiLoading || source.loading} context="Actual eConsent source review" />
+        <p>These choices prepare actual form and patient references for review. Consent meaning and your signing password remain manual and unchanged; no choice obtains consent, signs a record or performs an AI call.</p>
         <div className="form-grid">
           <div className="form-group"><label>Form</label>
-            <select value={sign.form_id} onChange={e => setSign({ ...sign, form_id: e.target.value })}>
+            <select data-ai-field="form_id" value={sign.form_id} onChange={e => setSign({ ...sign, form_id: e.target.value })}>
               {formIds.map(id => <option key={id} value={id}>{id} (latest active version)</option>)}
             </select>
           </div>
-          <div className="form-group"><label>Subject / Patient ID</label><input value={sign.patient} onChange={e => setSign({ ...sign, patient: e.target.value })} placeholder="PT-0001" /></div>
+          <div className="form-group"><label>Subject / Patient ID</label><select data-ai-field="patient" value={sign.patient} onChange={e=>setSign({...sign,patient:e.target.value})}><option value="">Select actual patient</option>{patients.map(row=><option key={row.patient_id} value={row.patient_id}>{row.patient_id}</option>)}</select></div>
           <div className="form-group"><label>Meaning</label>
-            <select value={sign.meaning} onChange={e => setSign({ ...sign, meaning: e.target.value })}>
+            <select data-ai-field="meaning" value={sign.meaning} onChange={e => setSign({ ...sign, meaning: e.target.value })}>
               <option>Consent obtained from subject</option>
               <option>Re-consent after amendment</option>
               <option>Consent withdrawn</option>
             </select>
           </div>
-          <div className="form-group"><label>Your password (e-signature)</label><input type="password" value={sign.password} onChange={e => setSign({ ...sign, password: e.target.value })} /></div>
+          <div className="form-group"><label>Your password (e-signature)</label><input data-ai-field="password" type="password" value={sign.password} onChange={e => setSign({ ...sign, password: e.target.value })} /></div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn btn-primary" onClick={doSign} disabled={!sign.form_id || !sign.patient || !sign.password}>Sign</button>

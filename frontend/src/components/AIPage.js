@@ -1,5 +1,8 @@
+import { protectPresetRequest, demonstrationData } from './SampleIntegrity';
+import AIFieldPresets, { completeExample } from './AIFieldPresets';
+import useCancelableAI from './useCancelableAI';
 import React, { useEffect, useState } from 'react';
-import AIResult from './AIResult';
+import AIResult from './AIResultView';
 import AIHistory from './AIHistory';
 import { aiSamples, featureAiAnalyze } from '../services/api';
 
@@ -14,12 +17,14 @@ import { aiSamples, featureAiAnalyze } from '../services/api';
  *   submitLabel?: string
  */
 export default function AIPage({ title, subtitle, feature, defaults, fields, call, submitLabel = 'Run' }) {
-  const [form, setForm] = useState(defaults || {});
-  const [result, setResult] = useState(null);
-  const [aiReview, setAiReview] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [form, setForm] = useState(() => demonstrationData(defaults || {}));
+  const aiRequest = useCancelableAI();
+  const { result, setResult: setResult, loading, error, setError: setError } = aiRequest;
+  const reviewRequest = useCancelableAI();
+  const { result: aiReview, loading: aiLoading, setResult: setAiReview } = reviewRequest;
+
+
+
   const [historyOpen, setHistoryOpen] = useState(false);
   const [samples, setSamples] = useState([]);
 
@@ -34,23 +39,7 @@ export default function AIPage({ title, subtitle, feature, defaults, fields, cal
 
   // Apply a sample-scenario into the form. JSON-typed fields get stringified
   // so the textarea shows them; the submit handler will parse them back.
-  const applySample = (sample) => {
-    if (!sample || !sample.values) return;
-    setForm(prev => {
-      const next = { ...prev };
-      for (const [k, v] of Object.entries(sample.values)) {
-        const f = fields.find(ff => ff.key === k);
-        if (f && f.type === 'json' && typeof v !== 'string') {
-          next[k] = JSON.stringify(v, null, 2);
-        } else {
-          next[k] = v;
-        }
-      }
-      return next;
-    });
-    setResult(null);
-    setError(null);
-  };
+  const applySample = (sample, index = 0) => { setForm(protectPresetRequest(completeExample(fields.map(field => ({ ...field, defaultValue: demonstrationData(defaults?.[field.key] ?? (/budgets|ae_data|visits|curve|records|subjects|sites|rows|events/i.test(field.key) ? [] : {})) })), sample || {}, index, title, form), form)); setResult(null); setAiReview(null); setError(null); };
 
   const buildPayload = () => {
     const payload = { ...form };
@@ -62,29 +51,9 @@ export default function AIPage({ title, subtitle, feature, defaults, fields, cal
     return payload;
   };
 
-  const onSubmit = async () => {
-    setLoading(true); setError(null); setResult(null); setAiReview(null);
-    try {
-      setResult(await call(buildPayload()));
-    } catch (e) { setError(e.message); }
-    finally { setLoading(false); }
-  };
+  const onSubmit = async () => { setAiReview(null); return aiRequest.run((options) => call(buildPayload(), options)); };
 
-  const onAiReview = async () => {
-    setAiLoading(true); setError(null); setAiReview(null);
-    try {
-      const payload = buildPayload();
-      const baseResult = result || await call(payload);
-      if (!result) setResult(baseResult);
-      setAiReview(await featureAiAnalyze({
-        feature,
-        intent: `Review the ${title} feature output and compare it with the deterministic/memory-backed result.`,
-        input: payload,
-        mechanical_result: baseResult,
-      }));
-    } catch (e) { setError(e.message); }
-    finally { setAiLoading(false); }
-  };
+  const onAiReview = async () => reviewRequest.run(async (options) => { const payload = buildPayload(); const baseResult = result || await call(payload, options); if (options.signal.aborted) return undefined; if (!result) setResult(baseResult); return featureAiAnalyze({ feature, intent: `Review the ${title} feature output and compare it with the deterministic/memory-backed result.`, input: payload, mechanical_result: baseResult }, options); });
 
   const renderField = (f) => {
     const v = form[f.key] ?? '';
@@ -103,25 +72,8 @@ export default function AIPage({ title, subtitle, feature, defaults, fields, cal
         <button className="btn btn-secondary" onClick={() => setHistoryOpen(true)}>History</button>
       </div>
       <div className="card">
-        {samples.length > 0 && (
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 12, color: '#666', marginBottom: 6 }}>Sample scenarios — click to fill the form:</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {samples.map((s, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  className="btn btn-secondary"
-                  style={{ fontSize: 12, padding: '4px 10px' }}
-                  onClick={() => applySample(s)}
-                  title={`Fill form with: ${s.label}`}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        <AIFieldPresets fields={fields} samples={samples} context={title} disabled={loading || aiLoading} onFill={applySample} />
+        <p role="note">Examples are fictional drafting inputs. They do not supply a trial record, consent, approval or verified clinical observations. Select or enter actual authorized references separately; example buttons preserve references and source arrays you have entered. Empty array overrides are illustrative and suppress automatic source loading; leave an override blank to use the native authorized trial source.</p>
         <div className="form-grid">
           {fields.map(f => (
             <div key={f.key} className={`form-group ${f.full ? 'full' : ''}`}>
@@ -131,14 +83,15 @@ export default function AIPage({ title, subtitle, feature, defaults, fields, cal
           ))}
         </div>
         <div style={{ marginTop: 16, display:'flex', justifyContent:'flex-end', gap: 8 }}>
-          <button className="btn btn-ai" onClick={onSubmit} disabled={loading}>{submitLabel}</button>
-          <button className="btn btn-secondary" onClick={onAiReview} disabled={aiLoading}>
-            {aiLoading ? 'Running AI...' : 'OpenRouter AI'}
+          <button className="btn btn-ai" onClick={onSubmit} disabled={loading || aiLoading}>{submitLabel}</button>
+          <button className="btn btn-secondary" onClick={onAiReview} disabled={loading || aiLoading}>
+            {aiLoading ? 'Running AI...' : 'Generate with OpenRouter'}
           </button>
+          {(loading || aiLoading) && <button type="button" className="btn btn-secondary" onClick={() => { aiRequest.cancel(); reviewRequest.cancel(); }}>Cancel</button>}
         </div>
       </div>
       <AIResult result={result} loading={loading} error={error} />
-      <AIResult result={aiReview} loading={aiLoading} error={null} />
+      <AIResult result={aiReview} loading={aiLoading} error={reviewRequest.error} />
       <AIHistory feature={feature} open={historyOpen} onClose={() => setHistoryOpen(false)} />
     </div>
   );

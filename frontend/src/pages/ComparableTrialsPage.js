@@ -1,3 +1,4 @@
+import ClinicalPlanningPresets from '../components/ClinicalPlanningPresets';
 import React, { useState } from 'react';
 import DetailModal from '../components/DetailModal';
 import AIResult from '../components/AIResult';
@@ -37,6 +38,7 @@ function ComparableTrialsPage() {
         </div>
       </div>
       <div className="card">
+        <ClinicalPlanningPresets feature="comparable-trials" disabled={loading || aiLoading} onFill={(values) => setForm(values)} />
         <div className="form-grid">
           <div className="form-group full"><label>Indication</label><input name="indication" value={form.indication} onChange={onChange} /></div>
           <div className="form-group"><label>Phase</label><input name="phase" value={form.phase} onChange={onChange} /></div>

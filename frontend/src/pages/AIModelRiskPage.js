@@ -1,7 +1,8 @@
+import NativeAIControls from "../components/NativeAIControls.jsx";
 import React, { useEffect, useState } from 'react';
 import AIResult from '../components/AIResult';
 import AIHistory from '../components/AIHistory';
-import SampleButtons from '../components/SampleButtons';
+
 import { aiModelRisk, getTrials } from '../services/api';
 
 const FEATURE = 'model-risk';
@@ -38,30 +39,24 @@ function AIModelRiskPage() {
   };
 
   return (
-    <div>
+    <NativeAIControls busy={loading} context="PharmaTrialDesigner"><div>
       <div className="page-header">
         <div><h2>AI: Model Risk</h2><p>Multi-dimensional risk scoring with safety signal detection (uses live AE data).</p></div>
         <button className="btn btn-secondary" onClick={() => setHistoryOpen(true)}>History</button>
       </div>
       <div className="card">
-        <SampleButtons feature={FEATURE} onPick={(values) => {
-          if (values.trial_id) {
-            const match = trials.find(t => t.trial_id === values.trial_id);
-            if (match) setSelectedId(String(match.id));
-          }
-          setForm(prev => ({ ...prev, ...values }));
-        }} />
+
         <div className="form-grid">
           <div className="form-group full"><label>Trial</label>
-            <select value={selectedId} onChange={e => setSelectedId(e.target.value)}>
+            <select data-ai-field={"selectedId"} value={selectedId} onChange={e => setSelectedId(e.target.value)}>
               {trials.map(t => <option key={t.id} value={t.id}>{t.trial_id} — {t.name?.slice(0,70)}</option>)}
             </select>
           </div>
           <div className="form-group"><label>Enrollment Lag (days)</label>
-            <input type="number" value={form.enrollment_lag_days} onChange={e=>setForm({...form,enrollment_lag_days:e.target.value})} />
+            <input data-ai-field={"enrollment_lag_days"} type="number" value={form.enrollment_lag_days} onChange={e=>setForm({...form,enrollment_lag_days:e.target.value})} />
           </div>
           <div className="form-group"><label>Protocol Deviations</label>
-            <input type="number" value={form.protocol_deviations} onChange={e=>setForm({...form,protocol_deviations:e.target.value})} />
+            <input data-ai-field={"protocol_deviations"} type="number" value={form.protocol_deviations} onChange={e=>setForm({...form,protocol_deviations:e.target.value})} />
           </div>
         </div>
         <div style={{ marginTop: 16, display:'flex', justifyContent:'flex-end' }}>
@@ -70,7 +65,7 @@ function AIModelRiskPage() {
       </div>
       <AIResult result={result} loading={loading} error={error} />
       <AIHistory feature={FEATURE} open={historyOpen} onClose={() => setHistoryOpen(false)} />
-    </div>
+    </div></NativeAIControls>
   );
 }
 export default AIModelRiskPage;

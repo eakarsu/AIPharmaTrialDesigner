@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import SampleButtons from '../components/SampleButtons';
+import AIFieldPresets from '../components/AIFieldPresets';
+import { useClinicalReferences, pickClinicalReference, ClinicalReferenceStatus, clinicalSourceChoices, randomizationDraftExamples } from '../components/ClinicalSourcePresets';
 import DetailModal from '../components/DetailModal';
 import AIResult from '../components/AIResult';
 import {
@@ -30,6 +31,16 @@ function RandomizationPage() {
     seed: '',
   });
 
+  const source = useClinicalReferences(['trials', 'patients']);
+  const trials = source.records.trials || [];
+  const patients = source.records.patients || [];
+  const fillDraft = (sample) => setForm(current => ({ ...sample.values, trial: pickClinicalReference(current.trial, trials, 'trial_id') }));
+  const fillSubject = (_, index) => {
+    const assigned = selected?.assignments || [];
+    const candidates = [...assigned.map(row=>({patient_id:row.subject_id})), ...patients];
+    setSubjectId(pickClinicalReference(subjectId, candidates, 'patient_id', index));
+    setStratum(current => selected?.strata?.includes(current) ? current : selected?.strata?.[index % (selected?.strata?.length || 1)] || '');
+  };
   useEffect(() => { load(); }, []);
 
   async function load() {
@@ -139,19 +150,20 @@ function RandomizationPage() {
       {error && <div className="card" style={{ borderLeft: '4px solid #dc2626', color: '#dc2626' }}>{error}</div>}
       {info && <div className="card" style={{ borderLeft: '4px solid #16a34a' }}>{info}</div>}
 
-      <SampleButtons feature="randomization-scheme" onPick={(v) => { setForm(f => ({ ...f, ...v })); setShowNew(true); }} />
-
       {showNew && (
         <div className="card">
           <h3>New Scheme</h3>
+          <ClinicalReferenceStatus source={source} required={['trials']} />
+          <AIFieldPresets fields={[{key:'scheme_id',allowIllustrativeIdentifier:true},{key:'trial',recordReference:true,options:trials.map(row=>row.trial_id)},{key:'block_size',type:'number'},{key:'seed'},{key:'arms',type:'json'},{key:'strata',type:'json'},{key:'category_schema',type:'json'}]} samples={randomizationDraftExamples} onFill={fillDraft} disabled={aiLoading || source.loading} context="Illustrative draft scheme" />
+          <p>Draft examples fill every planning parameter, including seed and empty structured cases. They do not create a scheme, allocate a participant, grant consent or dispense medication.</p>
           <div className="form-grid">
-            <div className="form-group"><label>Scheme ID</label><input value={form.scheme_id} onChange={e => setForm({ ...form, scheme_id: e.target.value })} /></div>
-            <div className="form-group"><label>Trial ID</label><input value={form.trial} onChange={e => setForm({ ...form, trial: e.target.value })} /></div>
-            <div className="form-group"><label>Block Size</label><input type="number" value={form.block_size} onChange={e => setForm({ ...form, block_size: e.target.value })} /></div>
-            <div className="form-group"><label>Seed (blank = auto)</label><input value={form.seed} onChange={e => setForm({ ...form, seed: e.target.value })} /></div>
-            <div className="form-group" style={{ gridColumn: '1 / -1' }}><label>Arms (JSON: name + ratio)</label><textarea rows={2} value={form.arms} onChange={e => setForm({ ...form, arms: e.target.value })} /></div>
-            <div className="form-group" style={{ gridColumn: '1 / -1' }}><label>Strata (JSON array of labels; [] = unstratified)</label><textarea rows={2} value={form.strata} onChange={e => setForm({ ...form, strata: e.target.value })} /></div>
-            <div className="form-group" style={{ gridColumn: '1 / -1' }}><label>Category Schema (JSON: randomization + IRT categories)</label><textarea rows={5} value={form.category_schema} onChange={e => setForm({ ...form, category_schema: e.target.value })} /></div>
+            <div className="form-group"><label>Scheme ID</label><input data-ai-field="scheme_id" value={form.scheme_id} onChange={e => setForm({ ...form, scheme_id: e.target.value })} /></div>
+            <div className="form-group"><label>Trial ID</label><select data-ai-field="trial" value={form.trial} onChange={e=>setForm({...form,trial:e.target.value})}><option value="">Select actual trial</option>{trials.map(row=><option key={row.trial_id} value={row.trial_id}>{row.trial_id}</option>)}</select></div>
+            <div className="form-group"><label>Block Size</label><input data-ai-field="block_size" type="number" value={form.block_size} onChange={e => setForm({ ...form, block_size: e.target.value })} /></div>
+            <div className="form-group"><label>Seed (blank = auto)</label><input data-ai-field="seed" value={form.seed} onChange={e => setForm({ ...form, seed: e.target.value })} /></div>
+            <div className="form-group" style={{ gridColumn: '1 / -1' }}><label>Arms (JSON: name + ratio)</label><textarea data-ai-field="arms" rows={2} value={form.arms} onChange={e => setForm({ ...form, arms: e.target.value })} /></div>
+            <div className="form-group" style={{ gridColumn: '1 / -1' }}><label>Strata (JSON array of labels; [] = unstratified)</label><textarea data-ai-field="strata" rows={2} value={form.strata} onChange={e => setForm({ ...form, strata: e.target.value })} /></div>
+            <div className="form-group" style={{ gridColumn: '1 / -1' }}><label>Category Schema (JSON: randomization + IRT categories)</label><textarea data-ai-field="category_schema" rows={5} value={form.category_schema} onChange={e => setForm({ ...form, category_schema: e.target.value })} /></div>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn btn-primary" onClick={createScheme}>Create Scheme</button>
@@ -186,11 +198,14 @@ function RandomizationPage() {
       {selected && (
         <div className="card">
           <h3>{selected.scheme_id} — Randomize Subject</h3>
+          <ClinicalReferenceStatus source={source} required={['patients']} />
+          <AIFieldPresets fields={[{key:'subject_id',recordReference:true,options:[...(selected.assignments || []).map(row=>row.subject_id),...patients.map(row=>row.patient_id)]},{key:'stratum',type:'select',options:selected.strata || []}]} samples={clinicalSourceChoices} onFill={fillSubject} disabled={aiLoading || source.loading} context="Actual subject-source review" />
+          <p>Review choices select actual accessible source references only. Eligibility and consent must be independently established before the separate Randomize action.</p>
           <div className="form-grid">
-            <div className="form-group"><label>Subject ID</label><input value={subjectId} onChange={e => setSubjectId(e.target.value)} placeholder="e.g. PT-0101" /></div>
+            <div className="form-group"><label>Subject ID</label><input data-ai-field="subject_id" value={subjectId} onChange={e => setSubjectId(e.target.value)} placeholder="e.g. PT-0101" /></div>
             {(selected.strata || []).length > 0 && (
               <div className="form-group"><label>Stratum</label>
-                <select value={stratum} onChange={e => setStratum(e.target.value)}>
+                <select data-ai-field="stratum" value={stratum} onChange={e => setStratum(e.target.value)}>
                   {selected.strata.map(s => <option key={s}>{s}</option>)}
                 </select>
               </div>

@@ -1,6 +1,6 @@
+import ClinicalPlanningPresets from '../components/ClinicalPlanningPresets';
 import React, { useState } from 'react';
 import AIResult from '../components/AIResult';
-import SampleButtons from '../components/SampleButtons';
 import { designPower, designSimulate, featureAiAnalyze } from '../services/api';
 
 function DesignSimulatorPage() {
@@ -65,8 +65,8 @@ function DesignSimulatorPage() {
         </div>
 
         {tab === 'power'
-          ? <SampleButtons feature="design-power" onPick={(v) => setPower(p => ({ ...p, ...v }))} />
-          : <SampleButtons feature="design-simulate" onPick={(v) => setSim(s => ({ ...s, ...v }))} />}
+          ? <ClinicalPlanningPresets feature="design-power" disabled={loading || aiLoading} onFill={(values) => setPower(values)} />
+          : <ClinicalPlanningPresets feature="design-simulate" disabled={loading || aiLoading} onFill={(values) => setSim(values)} />}
 
         {tab === 'power' ? (
           <div className="form-grid">

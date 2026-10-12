@@ -1,7 +1,8 @@
+import NativeAIControls from "../components/NativeAIControls.jsx";
 import React, { useState } from 'react';
 import AIResult from '../components/AIResult';
 import AIHistory from '../components/AIHistory';
-import SampleButtons from '../components/SampleButtons';
+
 import { aiDropoutPredictor } from '../services/api';
 
 const FEATURE = 'dropout-predictor';
@@ -33,7 +34,7 @@ function AIDropoutPredictorPage() {
   };
 
   return (
-    <div>
+    <NativeAIControls busy={loading} context="PharmaTrialDesigner"><div>
       <div className="page-header">
         <div>
           <h2>Dropout-Rate Predictor</h2>
@@ -43,13 +44,13 @@ function AIDropoutPredictorPage() {
       </div>
       <div className="card" style={{ borderLeft: '4px solid #f59e0b' }}>
         <p style={{ color: '#92400e', fontSize: 13 }}>ADVISORY ONLY — requires expert review — not for regulatory submission.</p>
-        <SampleButtons feature={FEATURE} onPick={(values) => setForm(prev => ({ ...prev, ...values }))} />
+
         <div className="form-grid">
-          <div className="form-group"><label>Indication</label><input name="indication" value={form.indication} onChange={onChange} /></div>
-          <div className="form-group"><label>Phase</label><input name="phase" value={form.phase} onChange={onChange} /></div>
-          <div className="form-group"><label>Duration (weeks)</label><input type="number" name="duration_weeks" value={form.duration_weeks} onChange={onChange} /></div>
-          <div className="form-group"><label>Visit Frequency</label><input name="visit_frequency" value={form.visit_frequency} onChange={onChange} /></div>
-          <div className="form-group full"><label>Population</label><input name="population" value={form.population} onChange={onChange} /></div>
+          <div className="form-group"><label>Indication</label><input data-ai-field={"indication"} name="indication" value={form.indication} onChange={onChange} /></div>
+          <div className="form-group"><label>Phase</label><input data-ai-field={"phase"} name="phase" value={form.phase} onChange={onChange} /></div>
+          <div className="form-group"><label>Duration (weeks)</label><input data-ai-field={"duration_weeks"} type="number" name="duration_weeks" value={form.duration_weeks} onChange={onChange} /></div>
+          <div className="form-group"><label>Visit Frequency</label><input data-ai-field={"visit_frequency"} name="visit_frequency" value={form.visit_frequency} onChange={onChange} /></div>
+          <div className="form-group full"><label>Population</label><input data-ai-field={"population"} name="population" value={form.population} onChange={onChange} /></div>
           <div className="form-group"><label><input type="checkbox" name="placebo_arm" checked={!!form.placebo_arm} onChange={onChange} /> Has placebo arm</label></div>
         </div>
         <div style={{ marginTop: 16, display:'flex', justifyContent:'flex-end' }}>
@@ -58,7 +59,7 @@ function AIDropoutPredictorPage() {
       </div>
       <AIResult result={result} loading={loading} error={error} />
       <AIHistory feature={FEATURE} open={historyOpen} onClose={() => setHistoryOpen(false)} />
-    </div>
+    </div></NativeAIControls>
   );
 }
 export default AIDropoutPredictorPage;

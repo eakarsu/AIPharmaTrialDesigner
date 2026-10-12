@@ -1,7 +1,8 @@
+import NativeAIControls from "../components/NativeAIControls.jsx";
 import React, { useState } from 'react';
 import AIResult from '../components/AIResult';
 import AIHistory from '../components/AIHistory';
-import SampleButtons from '../components/SampleButtons';
+
 import { aiAdaptiveSim } from '../services/api';
 
 const FEATURE = 'adaptive-sim';
@@ -30,7 +31,7 @@ function AIAdaptiveSimPage() {
   };
 
   return (
-    <div>
+    <NativeAIControls busy={loading} context="PharmaTrialDesigner"><div>
       <div className="page-header">
         <div>
           <h2>Adaptive-Design Simulator</h2>
@@ -40,14 +41,14 @@ function AIAdaptiveSimPage() {
       </div>
       <div className="card" style={{ borderLeft: '4px solid #f59e0b' }}>
         <p style={{ color: '#92400e', fontSize: 13 }}>ADVISORY ONLY — requires expert review — not for regulatory submission.</p>
-        <SampleButtons feature={FEATURE} onPick={(values) => setForm(prev => ({ ...prev, ...values }))} />
+
         <div className="form-grid">
-          <div className="form-group"><label>Design Family</label><input name="design_family" value={form.design_family} onChange={onChange} /></div>
-          <div className="form-group"><label>Indication</label><input name="indication" value={form.indication} onChange={onChange} /></div>
-          <div className="form-group"><label>Phase</label><input name="phase" value={form.phase} onChange={onChange} /></div>
-          <div className="form-group"><label>Primary Endpoint</label><input name="primary_endpoint" value={form.primary_endpoint} onChange={onChange} /></div>
-          <div className="form-group"><label>Planned N</label><input type="number" name="planned_n" value={form.planned_n} onChange={onChange} /></div>
-          <div className="form-group"><label>Interim Fractions (comma-separated)</label><input name="interim_fractions" value={form.interim_fractions} onChange={onChange} /></div>
+          <div className="form-group"><label>Design Family</label><input data-ai-field={"design_family"} name="design_family" value={form.design_family} onChange={onChange} /></div>
+          <div className="form-group"><label>Indication</label><input data-ai-field={"indication"} name="indication" value={form.indication} onChange={onChange} /></div>
+          <div className="form-group"><label>Phase</label><input data-ai-field={"phase"} name="phase" value={form.phase} onChange={onChange} /></div>
+          <div className="form-group"><label>Primary Endpoint</label><input data-ai-field={"primary_endpoint"} name="primary_endpoint" value={form.primary_endpoint} onChange={onChange} /></div>
+          <div className="form-group"><label>Planned N</label><input data-ai-field={"planned_n"} type="number" name="planned_n" value={form.planned_n} onChange={onChange} /></div>
+          <div className="form-group"><label>Interim Fractions (comma-separated)</label><input data-ai-field={"interim_fractions"} name="interim_fractions" value={form.interim_fractions} onChange={onChange} /></div>
         </div>
         <div style={{ marginTop: 16, display:'flex', justifyContent:'flex-end' }}>
           <button className="btn btn-ai" onClick={onSubmit} disabled={loading}>Describe Design</button>
@@ -55,7 +56,7 @@ function AIAdaptiveSimPage() {
       </div>
       <AIResult result={result} loading={loading} error={error} />
       <AIHistory feature={FEATURE} open={historyOpen} onClose={() => setHistoryOpen(false)} />
-    </div>
+    </div></NativeAIControls>
   );
 }
 export default AIAdaptiveSimPage;

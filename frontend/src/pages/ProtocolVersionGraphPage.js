@@ -1,16 +1,21 @@
 import React, { useState } from 'react';
 import DetailModal from '../components/DetailModal';
 import AIResult from '../components/AIResult';
+import AIFieldPresets from '../components/AIFieldPresets';
+import { useClinicalReferences, pickClinicalReference, ClinicalReferenceStatus, clinicalSourceChoices } from '../components/ClinicalSourcePresets';
 import { getProtocolGraphByTrial, protocolGraphAi } from '../services/api';
 
 function ProtocolVersionGraphPage() {
-  const [trialId, setTrialId] = useState('ONCO-LUNG-301');
+  const [trialId, setTrialId] = useState('');
   const [graph, setGraph] = useState(null);
   const [aiResult, setAiResult] = useState(null);
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [error, setError] = useState(null);
+  const source = useClinicalReferences(['trials']);
+  const trials = source.records.trials || [];
+  const fillSource = (_, index) => setTrialId(pickClinicalReference(trialId, trials, 'trial_id', index));
 
   const onLoad = async () => {
     setLoading(true); setError(null); setGraph(null); setAiResult(null);
@@ -35,12 +40,14 @@ function ProtocolVersionGraphPage() {
         </div>
       </div>
       <div className="card">
+        <ClinicalReferenceStatus source={source} required={['trials']} />
+        <AIFieldPresets fields={[{key:'trial',recordReference:true,options:trials.map(row=>row.trial_id)}]} samples={clinicalSourceChoices} onFill={fillSource} disabled={aiLoading || loading || source.loading} context="Protocol graph review" />
         <div className="form-grid">
-          <div className="form-group full"><label>Trial ID</label><input value={trialId} onChange={(e) => setTrialId(e.target.value)} /></div>
+          <div className="form-group full"><label>Trial ID</label><select data-ai-field="trial" value={trialId} onChange={(e) => setTrialId(e.target.value)}><option value="">Select actual trial</option>{trials.map(row=><option key={row.trial_id} value={row.trial_id}>{row.trial_id} — {row.name || row.title || "Accessible trial"}</option>)}</select></div>
         </div>
         <div style={{ marginTop: 16, display:'flex', justifyContent:'flex-end', gap: 8 }}>
-          <button className="btn btn-primary" onClick={onLoad} disabled={loading}>Load Version Graph</button>
-          <button className="btn btn-ai" onClick={onAi} disabled={aiLoading}>{aiLoading ? 'Running AI...' : 'OpenRouter AI'}</button>
+          <button className="btn btn-primary" onClick={onLoad} disabled={loading || !trialId}>Load Version Graph</button>
+          <button className="btn btn-ai" onClick={onAi} disabled={aiLoading || !trialId}>{aiLoading ? 'Running AI...' : 'OpenRouter AI'}</button>
         </div>
       </div>
       {error && <div className="card" style={{ color: '#b91c1c' }}>Error: {error}</div>}

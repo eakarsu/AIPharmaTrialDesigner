@@ -59,7 +59,7 @@ function AIHistory({ feature, open, onClose }) {
                       {it.input && Object.keys(it.input || {}).length > 0 && (
                         <>
                           <h5>Input</h5>
-                          <pre className="ai-raw-pre">{JSON.stringify(it.input, null, 2)}</pre>
+                          <AIResultDisplay result={it.input} loading={false} error={null} />
                         </>
                       )}
                       <div style={{ marginTop: 10 }}>

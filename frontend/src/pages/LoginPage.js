@@ -1,29 +1,27 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login } from '../services/api';
 
 const DEMO_EMAIL = process.env.REACT_APP_DEMO_EMAIL || '';
 const DEMO_PASSWORD = process.env.REACT_APP_DEMO_PASSWORD || '';
+const DEMO_LOGIN_ENABLED = process.env.REACT_APP_ENABLE_DEMO_CREDENTIAL_AUTOFILL === 'true' && Boolean(DEMO_EMAIL && DEMO_PASSWORD);
 
 function LoginPage({ onLogin }) {
+  const loginLock = useRef(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [demoLoginBusy, setDemoLoginBusy] = useState(false);
   const navigate = useNavigate();
 
-  const fillDemoCredentials = () => {
-    setEmail(DEMO_EMAIL);
-    setPassword(DEMO_PASSWORD);
-    setError(null);
-  };
-
-  const onSubmit = async (e) => {
-    if (e) e.preventDefault();
+  const submitCredentials = async (loginEmail, loginPassword) => {
+    if (loginLock.current) return;
+    loginLock.current = true;
     setError(null);
     setLoading(true);
     try {
-      const res = await login(email, password);
+      const res = await login(loginEmail, loginPassword);
       localStorage.setItem('token', res.token);
       localStorage.setItem('user', JSON.stringify(res.user));
       if (onLogin) onLogin(res.user, res.token);
@@ -31,7 +29,36 @@ function LoginPage({ onLogin }) {
     } catch (err) {
       setError(err.message || 'Login failed');
     } finally {
+      loginLock.current = false;
       setLoading(false);
+    }
+  };
+
+  const onSubmit = (event) => {
+    event.preventDefault();
+    return submitCredentials(email, password);
+  };
+
+  const onDemoLogin = async () => {
+    if (!DEMO_LOGIN_ENABLED || loginLock.current) return;
+    loginLock.current = true;
+    setDemoLoginBusy(true);
+    setError(null);
+    setEmail(DEMO_EMAIL);
+    setPassword(DEMO_PASSWORD);
+    setLoading(true);
+    try {
+      const res = await login(DEMO_EMAIL, DEMO_PASSWORD);
+      localStorage.setItem('token', res.token);
+      localStorage.setItem('user', JSON.stringify(res.user));
+      if (onLogin) onLogin(res.user, res.token);
+      navigate('/');
+    } catch (err) {
+      setError(err.message || 'Demo login failed');
+    } finally {
+      loginLock.current = false;
+      setLoading(false);
+      setDemoLoginBusy(false);
     }
   };
 
@@ -63,18 +90,12 @@ function LoginPage({ onLogin }) {
           />
         </div>
         {error && <div className="ai-error" style={{ marginBottom: 12 }}>{error}</div>}
-        <button type="button" className="btn" onClick={fillDemoCredentials} disabled={loading} style={{ width: '100%', marginBottom: 10 }}>
-          Auto Fill Demo Credentials
-        </button>
+        {DEMO_LOGIN_ENABLED && <button type="button" className="btn" onClick={onDemoLogin} disabled={demoLoginBusy || loading} style={{ width: '100%', marginBottom: 10 }}>
+          Log In as Demo
+        </button>}
         <button type="submit" className="btn btn-primary" disabled={loading} style={{ width: '100%' }}>
           {loading ? 'Signing in...' : 'Sign In'}
         </button>
-        <div className="login-hint">
-          Demo logins:<br/>
-          pi@trials.io / trial2026 (PI — read+write)<br/>
-          sponsor@trials.io / sponsor2026 (Sponsor — read+write)<br/>
-          monitor@trials.io / monitor2026 (Monitor — read+queries only)
-        </div>
       </form>
     </div>
   );

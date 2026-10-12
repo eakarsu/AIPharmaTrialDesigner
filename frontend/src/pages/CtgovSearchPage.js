@@ -1,5 +1,5 @@
+import ClinicalPlanningPresets from '../components/ClinicalPlanningPresets';
 import React, { useState } from 'react';
-import SampleButtons from '../components/SampleButtons';
 import DetailModal from '../components/DetailModal';
 import AIResult from '../components/AIResult';
 import { ctgovSearch, featureAiAnalyze } from '../services/api';
@@ -49,7 +49,7 @@ function CtgovSearchPage() {
 
       {error && <div className="card" style={{ borderLeft: '4px solid #dc2626', color: '#dc2626' }}>{error}</div>}
 
-      <SampleButtons feature="ctgov-search" onPick={(v) => { if (v.condition !== undefined) setCondition(v.condition); if (v.term !== undefined) setTerm(v.term); if (v.status !== undefined) setStatus(v.status); }} />
+      <ClinicalPlanningPresets disabled={loading || aiLoading} feature="ctgov-search" onFill={(v) => { if (v.condition !== undefined) setCondition(v.condition); if (v.term !== undefined) setTerm(v.term); if (v.status !== undefined) setStatus(v.status); }} />
 
       <div className="card">
         <div className="form-grid">

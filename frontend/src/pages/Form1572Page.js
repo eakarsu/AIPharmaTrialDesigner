@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import SampleButtons from '../components/SampleButtons';
+import AIFieldPresets from '../components/AIFieldPresets';
+import { useClinicalReferences, pickClinicalReference, ClinicalReferenceStatus, clinicalSourceChoices } from '../components/ClinicalSourcePresets';
 import DetailModal from '../components/DetailModal';
 import AIResult from '../components/AIResult';
 import { generateForm1572, getInvestigators, getTrials, featureAiAnalyze } from '../services/api';
@@ -16,13 +17,15 @@ function Form1572Page() {
   const [aiLoading, setAiLoading] = useState(false);
   const [detail, setDetail] = useState(null);
 
+  const source = useClinicalReferences(['investigators', 'trials']);
   useEffect(() => {
-    getInvestigators().then(rows => {
-      setInvestigators(rows);
-      if (rows.length) setInvestigatorId(rows[0].investigator_id);
-    }).catch(e => setError(e.message));
-    getTrials().then(setTrials).catch(() => {});
-  }, []);
+    setInvestigators(source.records.investigators || []);
+    setTrials(source.records.trials || []);
+  }, [source.records]);
+  const fillSource = (_, index) => {
+    setInvestigatorId(pickClinicalReference(investigatorId, investigators, 'investigator_id', index));
+    setTrial(pickClinicalReference(trial, trials, 'trial_id', index));
+  };
 
   async function run() {
     setLoading(true); setError(null); setResult(null); setAiResult(null);
@@ -64,17 +67,18 @@ function Form1572Page() {
 
       {error && <div className="card" style={{ borderLeft: '4px solid #dc2626', color: '#dc2626' }}>{error}</div>}
 
-      <SampleButtons feature="form-1572" onPick={(v) => { if (v.investigator_id !== undefined) setInvestigatorId(v.investigator_id); if (v.trial !== undefined) setTrial(v.trial); }} />
-
       <div className="card">
+        <ClinicalReferenceStatus source={source} required={['investigators', 'trials']} />
+        <AIFieldPresets fields={[{key:'investigator_id', options:investigators.map(row=>row.investigator_id)}, {key:'trial', recordReference:true, options:trials.map(row=>row.trial_id)}]} samples={clinicalSourceChoices} onFill={fillSource} disabled={aiLoading || loading || source.loading} context="Form 1572 draft review" />
         <div className="form-grid">
           <div className="form-group"><label>Investigator</label>
-            <select value={investigatorId} onChange={e => setInvestigatorId(e.target.value)}>
+            <select data-ai-field="investigator_id" value={investigatorId} onChange={e => setInvestigatorId(e.target.value)}>
+              <option value="">Select actual investigator</option>
               {investigators.map(i => <option key={i.investigator_id} value={i.investigator_id}>{i.investigator_id} — {i.name}</option>)}
             </select>
           </div>
           <div className="form-group"><label>Protocol / Trial (optional)</label>
-            <select value={trial} onChange={e => setTrial(e.target.value)}>
+            <select data-ai-field="trial" value={trial} onChange={e => setTrial(e.target.value)}>
               <option value="">— none —</option>
               {trials.map(t => <option key={t.trial_id} value={t.trial_id}>{t.trial_id}</option>)}
             </select>

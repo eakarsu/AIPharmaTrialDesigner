@@ -1,7 +1,8 @@
+import NativeAIControls from "../components/NativeAIControls.jsx";
 import React, { useEffect, useState } from 'react';
 import AIResult from '../components/AIResult';
 import AIHistory from '../components/AIHistory';
-import SampleButtons from '../components/SampleButtons';
+
 import { aiGenerateBrief, getTrials } from '../services/api';
 
 const FEATURE = 'generate-brief';
@@ -33,27 +34,21 @@ function AIGenerateBriefPage() {
   };
 
   return (
-    <div>
+    <NativeAIControls busy={loading} context="PharmaTrialDesigner"><div>
       <div className="page-header">
         <div><h2>AI: Generate Brief</h2><p>Executive / steering committee brief tailored to the selected trial.</p></div>
         <button className="btn btn-secondary" onClick={() => setHistoryOpen(true)}>History</button>
       </div>
       <div className="card">
-        <SampleButtons feature={FEATURE} onPick={(values) => {
-          if (values.trial_id) {
-            const match = trials.find(t => t.trial_id === values.trial_id);
-            if (match) setSelectedId(String(match.id));
-          }
-          if (values.audience) setAudience(values.audience);
-        }} />
+
         <div className="form-grid">
           <div className="form-group full"><label>Trial</label>
-            <select value={selectedId} onChange={e => setSelectedId(e.target.value)}>
+            <select data-ai-field={"selectedId"} value={selectedId} onChange={e => setSelectedId(e.target.value)}>
               {trials.map(t => <option key={t.id} value={t.id}>{t.trial_id} — {t.name?.slice(0,70)}</option>)}
             </select>
           </div>
           <div className="form-group full"><label>Audience</label>
-            <select value={audience} onChange={e => setAudience(e.target.value)}>
+            <select data-ai-field={"audience"} value={audience} onChange={e => setAudience(e.target.value)}>
               <option>Steering committee</option>
               <option>Investors</option>
               <option>FDA / regulatory pre-meeting</option>
@@ -68,7 +63,7 @@ function AIGenerateBriefPage() {
       </div>
       <AIResult result={result} loading={loading} error={error} />
       <AIHistory feature={FEATURE} open={historyOpen} onClose={() => setHistoryOpen(false)} />
-    </div>
+    </div></NativeAIControls>
   );
 }
 export default AIGenerateBriefPage;

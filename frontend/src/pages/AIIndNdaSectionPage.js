@@ -1,7 +1,8 @@
+import NativeAIControls from "../components/NativeAIControls.jsx";
 import React, { useState } from 'react';
 import AIResult from '../components/AIResult';
 import AIHistory from '../components/AIHistory';
-import SampleButtons from '../components/SampleButtons';
+
 import { aiIndNdaSection } from '../services/api';
 
 const FEATURE = 'ind-nda-section';
@@ -37,7 +38,7 @@ function AIIndNdaSectionPage() {
   };
 
   return (
-    <div>
+    <NativeAIControls busy={loading} context="PharmaTrialDesigner"><div>
       <div className="page-header">
         <div>
           <h2>IND/NDA Section Drafter</h2>
@@ -47,16 +48,16 @@ function AIIndNdaSectionPage() {
       </div>
       <div className="card" style={{ borderLeft: '4px solid #f59e0b' }}>
         <p style={{ color: '#92400e', fontSize: 13 }}>ADVISORY ONLY — requires expert review — not for regulatory submission.</p>
-        <SampleButtons feature={FEATURE} onPick={(values) => setForm(prev => ({ ...prev, ...values }))} />
+
         <div className="form-grid">
           <div className="form-group full"><label>Section</label>
-            <select name="section" value={form.section} onChange={onChange}>
+            <select data-ai-field={"section"} name="section" value={form.section} onChange={onChange}>
               {SECTIONS.map(s => <option key={s}>{s}</option>)}
             </select>
           </div>
-          <div className="form-group"><label>Indication</label><input name="indication" value={form.indication} onChange={onChange} /></div>
-          <div className="form-group"><label>Compound</label><input name="compound" value={form.compound} onChange={onChange} /></div>
-          <div className="form-group full"><label>Program Stage</label><input name="program_stage" value={form.program_stage} onChange={onChange} /></div>
+          <div className="form-group"><label>Indication</label><input data-ai-field={"indication"} name="indication" value={form.indication} onChange={onChange} /></div>
+          <div className="form-group"><label>Compound</label><input data-ai-field={"compound"} name="compound" value={form.compound} onChange={onChange} /></div>
+          <div className="form-group full"><label>Program Stage</label><input data-ai-field={"program_stage"} name="program_stage" value={form.program_stage} onChange={onChange} /></div>
         </div>
         <div style={{ marginTop: 16, display:'flex', justifyContent:'flex-end' }}>
           <button className="btn btn-ai" onClick={onSubmit} disabled={loading}>Draft Outline</button>
@@ -64,7 +65,7 @@ function AIIndNdaSectionPage() {
       </div>
       <AIResult result={result} loading={loading} error={error} />
       <AIHistory feature={FEATURE} open={historyOpen} onClose={() => setHistoryOpen(false)} />
-    </div>
+    </div></NativeAIControls>
   );
 }
 export default AIIndNdaSectionPage;

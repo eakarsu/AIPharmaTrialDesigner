@@ -1,7 +1,8 @@
+import NativeAIControls from "../components/NativeAIControls.jsx";
 import React, { useState } from 'react';
 import AIResult from '../components/AIResult';
 import AIHistory from '../components/AIHistory';
-import SampleButtons from '../components/SampleButtons';
+
 import { aiSizeCohort } from '../services/api';
 
 const FEATURE = 'size-cohort';
@@ -30,20 +31,20 @@ function AISizeCohortPage() {
   };
 
   return (
-    <div>
+    <NativeAIControls busy={loading} context="PharmaTrialDesigner"><div>
       <div className="page-header">
         <div><h2>AI: Size Cohort</h2><p>Sample-size calculation with sensitivity analysis and feasibility notes.</p></div>
         <button className="btn btn-secondary" onClick={() => setHistoryOpen(true)}>History</button>
       </div>
       <div className="card">
-        <SampleButtons feature={FEATURE} onPick={(values) => setForm(prev => ({ ...prev, ...values }))} />
+
         <div className="form-grid">
-          <div className="form-group full"><label>Primary Endpoint</label><input name="primary_endpoint" value={form.primary_endpoint} onChange={onChange} /></div>
-          <div className="form-group"><label>Effect Size</label><input name="effect_size" value={form.effect_size} onChange={onChange} /></div>
-          <div className="form-group"><label>Alpha (two-sided)</label><input type="number" step="0.005" name="alpha" value={form.alpha} onChange={onChange} /></div>
-          <div className="form-group"><label>Power</label><input type="number" step="0.05" name="power" value={form.power} onChange={onChange} /></div>
-          <div className="form-group"><label>Dropout Rate</label><input type="number" step="0.05" name="dropout_rate" value={form.dropout_rate} onChange={onChange} /></div>
-          <div className="form-group"><label>Allocation Ratio</label><input name="allocation_ratio" value={form.allocation_ratio} onChange={onChange} /></div>
+          <div className="form-group full"><label>Primary Endpoint</label><input data-ai-field={"primary_endpoint"} name="primary_endpoint" value={form.primary_endpoint} onChange={onChange} /></div>
+          <div className="form-group"><label>Effect Size</label><input data-ai-field={"effect_size"} name="effect_size" value={form.effect_size} onChange={onChange} /></div>
+          <div className="form-group"><label>Alpha (two-sided)</label><input data-ai-field={"alpha"} type="number" step="0.005" name="alpha" value={form.alpha} onChange={onChange} /></div>
+          <div className="form-group"><label>Power</label><input data-ai-field={"power"} type="number" step="0.05" name="power" value={form.power} onChange={onChange} /></div>
+          <div className="form-group"><label>Dropout Rate</label><input data-ai-field={"dropout_rate"} type="number" step="0.05" name="dropout_rate" value={form.dropout_rate} onChange={onChange} /></div>
+          <div className="form-group"><label>Allocation Ratio</label><input data-ai-field={"allocation_ratio"} name="allocation_ratio" value={form.allocation_ratio} onChange={onChange} /></div>
         </div>
         <div style={{ marginTop: 16, display:'flex', justifyContent:'flex-end' }}>
           <button className="btn btn-ai" onClick={onSubmit} disabled={loading}>Calculate Sample Size</button>
@@ -51,7 +52,7 @@ function AISizeCohortPage() {
       </div>
       <AIResult result={result} loading={loading} error={error} />
       <AIHistory feature={FEATURE} open={historyOpen} onClose={() => setHistoryOpen(false)} />
-    </div>
+    </div></NativeAIControls>
   );
 }
 export default AISizeCohortPage;
